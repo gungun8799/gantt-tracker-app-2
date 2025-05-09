@@ -1,10 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const admin = require('firebase-admin');
-const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import admin from 'firebase-admin';
 import dotenv from 'dotenv';
-dotenv.config({ path: './server/.env' });
+import serviceAccount from './datacube-tracker-firebase-adminsdk-fbsvc-ddda943896.json' assert { type: 'json' };
+dotenv.config();
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
