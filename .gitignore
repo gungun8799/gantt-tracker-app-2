@@ -24,3 +24,4 @@ yarn-error.log*
 
 
 server/firebase-adminsdk.jsonserver/datacube-tracker-firebase-adminsdk-*.json
+server/datacube-tracker-firebase-adminsdk-*.json
