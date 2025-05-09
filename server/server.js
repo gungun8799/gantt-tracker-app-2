@@ -2,11 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
-const serviceAccount = require('./datacube-tracker-firebase-adminsdk-fbsvc-ddda943896.json');
-
+const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
+
 
 const db = admin.firestore();
 const app = express();
