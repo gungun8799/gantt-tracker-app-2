@@ -3,10 +3,10 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
-import fs from 'fs';
-const serviceAccount = JSON.parse(
-  fs.readFileSync(new URL('./datacube-tracker-firebase-adminsdk-fbsvc-ddda943896.json', import.meta.url))
-);dotenv.config();
+
+dotenv.config(); // ✅ Load env FIRST
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS_JSON); // ✅ Now it's available
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
