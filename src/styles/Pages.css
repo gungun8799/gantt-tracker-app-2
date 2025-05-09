@@ -1,0 +1,230 @@
+
+  
+.page-container {
+    padding: 2rem;
+    background-color: #f1f1f1;
+    color: #1a1a1a;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  h1, h2 {
+    color: #0072CE;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #0072CE;
+  }
+  
+  .btn-primary {
+    background-color: #0072CE;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .btn-primary:hover {
+    background-color: #005EB8;
+  }
+  
+  .label {
+    color: #0072CE;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    display: inline-block;
+  }
+  
+  .input, .select {
+    border: 1px solid #f4f4f4;
+    padding: 0.5rem;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .section-block {
+    border: 1px solid #ffffff;
+    
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    background-color: #ffffff;
+  }
+
+  .section-block-filter {
+    border: 1px solid #ffffff;
+    width: 200px;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    background-color: #ffffff;
+  }
+
+  .summary-card {
+    background: white;
+ 
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+  }
+
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 14px;
+  }
+  
+  .report-table th, .report-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  
+  .report-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+  }
+  
+  .modal {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 300px;
+    text-align: center;
+  }
+  
+  .btn-danger {
+    background-color: crimson;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+  
+  .btn-secondary {
+    background-color: #ccc;
+    color: black;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+
+  .gantt-block {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    display: flex;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+  
+  .gantt-info {
+    width: 300px;
+    font-size: 14px;
+  }
+  
+  .gantt-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .gantt-chart {
+    flex: 1;
+  }
+  .report-container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+  }
+  
+  .report-row {
+    display: flex;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem 0;
+    gap: 2rem;
+  }
+  
+  .report-info {
+    width: 280px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  
+  .report-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .report-gantt {
+    flex-grow: 1;
+  }
+
+  .report-info span {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .card-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .card-table th, .card-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #ccc;
+    text-align: left;
+  }
+
+
+  .stage-pipeline-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .stage-cell {
+    background: #f5f5f5;
+    padding: 0.2rem;
+    max-width: 160px;
+    text-align: center;
+    border-radius: 6px;
+  }
+  
+  .stage-done {
+    background: #5cb85c;
+    color: white;
+  }
+  
+  .stage-name {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stage-count {
+    font-size: 1.2rem;
+  }

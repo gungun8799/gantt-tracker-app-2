@@ -1,0 +1,133 @@
+{
+    "reportId": "RPT001",
+    "reportName": "Daily Sales Report",
+    "recentUpdate": "2025-05-08T09:00:00Z",
+  
+    "changeLog": [
+      {
+        "changedBy": "panithan",
+        "changeDate": "2025-05-08T09:00:00Z",
+        "changeType": "Delay",
+        "notes": "Stage 2 delayed due to missing source file"
+      }
+    ],
+  
+    "usedBy": [
+      {
+        "buId": "BU01",
+        "buName": "Finance",
+        "priority": "High",
+        "stages": [
+          {
+            "stageId": "STG01",
+            "stageName": "Gather requirements with user",
+            "plannedStart": "2025-05-01",
+            "plannedEnd": "2025-05-03",
+            "actualStart": "2025-05-01",
+            "actualEnd": "2025-05-02",
+            "issueDescription": "",
+            "delayInDays": 0,
+            "PICs": ["Anan"]
+          },
+          {
+            "stageId": "STG02",
+            "stageName": "Select File sourcing option",
+            "plannedStart": "2025-05-04",
+            "plannedEnd": "2025-05-05",
+            "actualStart": "2025-05-06",
+            "actualEnd": "2025-05-07",
+            "issueDescription": "Late input from BU",
+            "delayInDays": 2,
+            "PICs": ["Supaporn"]
+          },
+          {
+            "stageId": "STG03",
+            "stageName": "Produce Data mapping script",
+            "plannedStart": "2025-05-06",
+            "plannedEnd": "2025-05-08",
+            "actualStart": null,
+            "actualEnd": null,
+            "issueDescription": "",
+            "delayInDays": null,
+            "PICs": []
+          },
+          {
+            "stageId": "STG04",
+            "stageName": "Ingest to Azure & DEV",
+            "plannedStart": null,
+            "plannedEnd": null,
+            "actualStart": null,
+            "actualEnd": null,
+            "issueDescription": "",
+            "delayInDays": null,
+            "PICs": []
+          },
+          {
+            "stageId": "STG05",
+            "stageName": "UAT on Azure",
+            "plannedStart": null,
+            "plannedEnd": null,
+            "actualStart": null,
+            "actualEnd": null,
+            "issueDescription": "",
+            "delayInDays": null,
+            "PICs": []
+          },
+          {
+            "stageId": "STG06",
+            "stageName": "Data transformation for PBI",
+            "plannedStart": null,
+            "plannedEnd": null,
+            "actualStart": null,
+            "actualEnd": null,
+            "issueDescription": "",
+            "delayInDays": null,
+            "PICs": []
+          },
+          {
+            "stageId": "STG07",
+            "stageName": "UAT on PBI",
+            "plannedStart": null,
+            "plannedEnd": null,
+            "actualStart": null,
+            "actualEnd": null,
+            "issueDescription": "",
+            "delayInDays": null,
+            "PICs": []
+          },
+          {
+            "stageId": "STG08",
+            "stageName": "File sourcing automation",
+            "plannedStart": null,
+            "plannedEnd": null,
+            "actualStart": null,
+            "actualEnd": null,
+            "issueDescription": "",
+            "delayInDays": null,
+            "PICs": []
+          },
+          {
+            "stageId": "STG09",
+            "stageName": "Done",
+            "plannedStart": null,
+            "plannedEnd": null,
+            "actualStart": null,
+            "actualEnd": null,
+            "issueDescription": "",
+            "delayInDays": null,
+            "PICs": []
+          }
+        ]
+      }
+    ],
+  
+    "rawFiles": [
+      {
+        "fileId": "F001",
+        "fileName": "sales_apr.xlsx",
+        "systemId": "SYS01",
+        "systemName": "SAP",
+        "systemOwner": "Somchai"
+      }
+    ]
+  }
