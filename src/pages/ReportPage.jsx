@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Chart } from 'react-google-charts';
 import '../styles/Pages.css';
+const apiUrl = process.env.REACT_APP_BACKEND_URL;
 
 export default function ReportPage() {
   const [reports, setReports] = useState([]);
@@ -15,7 +16,7 @@ export default function ReportPage() {
   });
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/get-reports')
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(setReports)
       .catch(err => console.error('❌ Failed to fetch reports:', err));
