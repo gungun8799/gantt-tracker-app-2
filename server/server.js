@@ -3,8 +3,10 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
-import serviceAccount from './datacube-tracker-firebase-adminsdk-fbsvc-ddda943896.json' assert { type: 'json' };
-dotenv.config();
+import fs from 'fs';
+const serviceAccount = JSON.parse(
+  fs.readFileSync(new URL('./datacube-tracker-firebase-adminsdk-fbsvc-ddda943896.json', import.meta.url))
+);dotenv.config();
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
