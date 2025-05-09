@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/Pages.css';
-
+const apiUrl = process.env.REACT_APP_BACKEND_URL;
 const stageTemplate = [
   "Gather requirements with user",
   "Select File sourcing option",
@@ -137,7 +137,7 @@ export default function DataEntryPage() {
     };
 
     try {
-        const apiUrl = process.env.REACT_APP_BACKEND_URL;
+        
         const res = await fetch(`${apiUrl}/api/save-report`, {        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
