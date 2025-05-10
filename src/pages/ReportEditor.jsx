@@ -17,7 +17,8 @@ export default function DashboardPage() {
   const [stageChangeModal, setStageChangeModal] = useState({ open: false, reportIdx: null, newStage: null });
   const [editingStageIdx, setEditingStageIdx] = useState(null);
   const [newStageName, setNewStageName] = useState('');
-  
+  const [businessOwner, setBusinessOwner] = useState('');
+const [businessOwnerList, setBusinessOwnerList] = useState([]);
   const toggleReport = (reportId) => {
     setOpenReports(prev => ({ ...prev, [reportId]: !prev[reportId] }));
   };
@@ -110,6 +111,10 @@ export default function DashboardPage() {
       filtered = filtered.filter(r => selectedBUs.includes(r.usedBy[0]?.buName));
     }
 
+    if (businessOwner && businessOwner.trim()) {
+      filtered = filtered.filter(r => r.businessOwner?.includes(businessOwner));
+    }
+
     if (selectedStage) {
       filtered = filtered.filter(r => r.currentStage === selectedStage);
     }
@@ -185,7 +190,7 @@ export default function DashboardPage() {
 
   return (
     <div className="page-container">
-      <h1>📊 Report Editor</h1>
+      <h1>📊 Report Update</h1>
 
       {/* FILTER SECTION */}
       <div className="section-block">
@@ -214,6 +219,37 @@ export default function DashboardPage() {
                   />
                   <span style={{ marginLeft: '0.5rem' }}>{bu}</span>
                 </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="label" style={{ flex: '1 1 100%' }}>
+            Business Owner
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                className="input"
+                placeholder="e.g. Kanda"
+                value={businessOwner}
+                onChange={e => setBusinessOwner(e.target.value)}
+                style={{ flex: '1 1 50%' }}
+              />
+              <button
+                className="btn-primary"
+                type="button"
+                onClick={() => {
+                  if (businessOwner && !businessOwnerList.includes(businessOwner)) {
+                    setBusinessOwnerList(prev => [...prev, businessOwner]);
+                  }
+                }}
+              >
+                + Add
+              </button>
+            </div>
+            <div style={{ marginTop: '0.5rem' }}>
+              {businessOwnerList.map((bo, i) => (
+                <span key={i} style={{ marginRight: '0.5rem' }}>
+                  {bo} <button onClick={() => setBusinessOwnerList(prev => prev.filter(b => b !== bo))}>🗑</button>
+                </span>
               ))}
             </div>
           </label>
@@ -319,19 +355,26 @@ export default function DashboardPage() {
         const isReportOpen = openReports[reportKey] || false;
 
         return (
-          <div key={report.reportId} className="section-block">
+          <div key={report.reportId} className="section-block-2">
             <h2
-              className="section-title"
+              className="section-title-2"
               onClick={() => toggleReport(reportKey)}
               style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
-              {report.reportName} ({report.reportId})
+                <span>
+                  {report.reportName} ({report.reportId}) 
+                  <span className="current-stage-label"> {report.currentStage || 'No Stage'}</span>
+                </span>
               <span>{isReportOpen ? '▲' : '▼'}</span>
             </h2>
 
             {isReportOpen && (
               <>
-                <p><strong>BU:</strong> {report.usedBy[0]?.buName} | <strong>Priority:</strong> {report.usedBy[0]?.priority}</p>
+                <p>
+                  <strong>BU:</strong> {report.usedBy[0]?.buName} |
+                  <strong> Priority:</strong> {report.usedBy[0]?.priority} |
+                  <strong> Business Owner:</strong> {report.businessOwner || 'N/A'}
+                </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 {editingStageIdx === reportIdx ? (
@@ -382,54 +425,78 @@ export default function DashboardPage() {
                 )}
               </div>
 
-                {report.usedBy[0]?.stages.map((stage, stageIdx) => {
-                  const stageKey = `${report.reportId}-${stage.stageId}`;
-                  const isStageOpen = openStages[stageKey] || false;
+              {report.usedBy[0]?.stages.map((stage, stageIdx) => {
+  const stageKey = `${report.reportId}-${stage.stageId}`;
+  const isStageOpen = openStages[stageKey] || false;
 
-                  return (
-                    <div key={stage.stageId} style={{ borderTop: '1px solid #ccc', paddingTop: '1rem', marginTop: '1rem' }}>
-                      <h3
-                        className="section-title"
-                        onClick={() => toggleStage(stageKey)}
-                        style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                      >
-                        {stage.stageName}
-                        <span>{isStageOpen ? '▲' : '▼'}</span>
-                      </h3>
+  // Determine if the stage is completed or current
+  const allStageNames = report.usedBy[0]?.stages.map(s => s.stageName);
+  const currentStageIndex = allStageNames.indexOf(report.currentStage);
+  const isCompleted = stageIdx <= currentStageIndex;
 
-                      {isStageOpen && (
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                          <label className="label" style={{ flex: '1 1 45%' }}>
-                            Actual Start
-                            <input
-                              type="date"
-                              className="input"
-                              value={stage.actualStart || ''}
-                              onChange={e => handleFieldChange(reportIdx, stageIdx, 'actualStart', e.target.value)}
-                            />
-                          </label>
-                          <label className="label" style={{ flex: '1 1 45%' }}>
-                            Actual End
-                            <input
-                              type="date"
-                              className="input"
-                              value={stage.actualEnd || ''}
-                              onChange={e => handleFieldChange(reportIdx, stageIdx, 'actualEnd', e.target.value)}
-                            />
-                          </label>
-                          <label className="label" style={{ flex: '1 1 100%' }}>
-                            Issue Description
-                            <input
-                              className="input"
-                              value={stage.issueDescription || ''}
-                              onChange={e => handleFieldChange(reportIdx, stageIdx, 'issueDescription', e.target.value)}
-                            />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+  return (
+    <div
+      key={stage.stageId}
+      style={{ borderTop: '1px solid #ccc', paddingTop: '1rem', marginTop: '1rem' }}
+      className={isCompleted ? 'stage-completed' : ''}
+    >
+      <h3
+        className="section-title-3"
+        onClick={() => toggleStage(stageKey)}
+        style={{
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        {stage.stageName}
+        <span>{isStageOpen ? '▲' : '▼'}</span>
+      </h3>
+
+      {isStageOpen && (
+  <>
+    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+      <label className="label" style={{ flex: '1 1 45%' }}>
+        Actual Start
+        <input
+          type="date"
+          className="input"
+          value={stage.actualStart || ''}
+          onChange={e => handleFieldChange(reportIdx, stageIdx, 'actualStart', e.target.value)}
+        />
+      </label>
+      <label className="label" style={{ flex: '1 1 45%' }}>
+        Actual End
+        <input
+          type="date"
+          className="input"
+          value={stage.actualEnd || ''}
+          onChange={e => handleFieldChange(reportIdx, stageIdx, 'actualEnd', e.target.value)}
+        />
+      </label>
+      <label className="label" style={{ flex: '1 1 100%' }}>
+        Remark/Issues
+        <textarea
+          className="input-remark"
+          rows={4}
+          placeholder="Describe the update or issues..."
+          value={stage.issueDescription || ''}
+          onChange={e => handleFieldChange(reportIdx, stageIdx, 'issueDescription', e.target.value)}
+        />
+      </label>
+    </div>
+
+    <div className="save-stage-btn-wrapper">
+      <button className="btn-save-stage" onClick={() => saveReport(report)}>
+        💾 Save This Stage
+      </button>
+    </div>
+  </>
+)}
+    </div>
+  );
+})}
 
                 <button
                   className="btn-primary"

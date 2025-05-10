@@ -16,6 +16,26 @@
     font-weight: bold;
     margin-bottom: 1rem;
     color: #0072CE;
+    background-color: #ffffff;
+  }
+
+  .section-title-2 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #266ba3;
+  }
+
+  .section-title-3 {
+    font-size: 1.00rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    padding-left: 1rem; 
+    padding-right: 10px;
+    color: #7e7e7e;
+    background-color: #d2d2d2;
+    border-radius: 10px;
+    width: 20vw;
   }
   
   .btn-primary {
@@ -35,7 +55,6 @@
   .label {
     color: #0072CE;
     font-weight: 600;
-
     margin-bottom: 0.25rem;
     display: inline-block;
   }
@@ -46,8 +65,20 @@
     border-radius: 6px;
     margin-left: 10px;
     border-color: #cacaca;
-    width: 100%;
+    width: 40%;
     box-sizing: border-box;
+  }
+
+
+  .input-remark {
+    border: 1px solid #f4f4f4;
+    padding: 0.5rem;
+    border-radius: 6px;
+    margin-left: 10px;
+    border-color: #cacaca;
+    width: 40%;
+    box-sizing: border-box;
+    height: 10vw;
   }
 
   .section-block {
@@ -55,6 +86,15 @@
     
     border-radius: 8px;
     padding: 1.5rem;
+    margin-bottom: 2rem;
+    background-color: #ffffff;
+  }
+
+  .section-block-2 {
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    padding: 0.2rem;
+    padding-left: 20px;
     margin-bottom: 2rem;
     background-color: #ffffff;
   }
@@ -452,4 +492,46 @@
     border-radius: 6px;
     font-size: 14px;
     min-width: 220px;
+  }
+
+  .current-stage-label {
+    background-color: #005eb8;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    margin-left: 0.75rem;
+    display: inline-block;
+  }
+
+  .stage-completed .section-title-3 {
+    background-color: #0072CE;
+    color: white;
+  }
+  
+  .stage-row .section-title-3 {
+    transition: background-color 0.3s ease;
+  }
+
+
+  .save-stage-btn-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+  
+  .btn-save-stage {
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .btn-save-stage:hover {
+    background-color: #005ec4;
   }

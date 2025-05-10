@@ -290,8 +290,9 @@ filtered.forEach((r) => {
     maxWidth: '600px'
   }}
 >
-  <h3 className="report-title" style={{ marginBottom: '0.5rem' }}>
+  <h3 className="report-title" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
     {isExpanded ? '▼' : '▶'} {report.reportName} ({report.reportId})
+    <span className="stage-tag">{report.currentStage || 'No Stage'}</span>
   </h3>
 
   <div
@@ -303,9 +304,12 @@ filtered.forEach((r) => {
     }}
   >
     <div style={{ flex: '1' }}><strong>BU:</strong> {report.usedBy?.[0]?.buName || '-'}</div>
+    <div style={{ flex: '1' }}>
+  <strong>Biz Owner:</strong> {report.usedBy?.[0]?.businessOwner || '-'}
+</div>
     <div style={{ flex: '1' }}><strong>Stage:</strong> {report.currentStage || '-'}</div>
     <div style={{ flex: '1' }}>
-      <strong>PICs:</strong>{' '}
+      <strong>Current PICs:</strong>{' '}
       {
         (report.usedBy?.[0]?.stages || [])
           .find(s => s.stageName === report.currentStage)?.PICs?.join(', ') || '-'
@@ -313,10 +317,9 @@ filtered.forEach((r) => {
     </div>
     <div style={{ flex: '2' }}>
       <strong>Issues:</strong>{' '}
-      {(report.usedBy?.[0]?.stages || [])
-        .map(s => s.issueDescription)
-        .filter(Boolean)
-        .join(', ') || '-'}
+      {
+        (report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.issueDescription || '-'
+      }
     </div>
   </div>
 </div>

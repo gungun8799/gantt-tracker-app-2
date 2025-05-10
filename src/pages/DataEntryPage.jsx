@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
+const BOwnerOptions = ["Somchai", "Kanda", "Nattapong"];
 const stageTemplate = [
   "Gather requirements with user",
   "Select File sourcing option",
@@ -20,6 +21,8 @@ const rawFileOptions = [
   "stock_may.csv",
   "cost_center_data.xls"
 ];
+
+
 
 const PIC_OPTIONS_PER_STAGE = {
   STG01: ["Anan", "Supaporn"],
@@ -46,7 +49,8 @@ export default function DataEntryPage() {
   const [systemOwner, setSystemOwner] = useState('');
   const systemNames = ["SAP", "Oracle", "BigQuery"];
     const systemOwners = ["Somchai", "Kanda", "Nattapong"];
-
+    const [selectedBOwner, setSelectedBOwner] = useState('');
+    const [businessOwnerList, setBusinessOwnerList] = useState([]);
   const [stages, setStages] = useState(
     stageTemplate.map((name, index) => {
       const id = `STG0${index + 1}`;
@@ -133,7 +137,9 @@ export default function DataEntryPage() {
         notes: "Submitted from DataEntryPage"
       }],
       usedBy,
-      rawFiles
+      rawFiles,
+      businessOwners: businessOwnerList
+
     };
 
     try {
@@ -189,6 +195,25 @@ export default function DataEntryPage() {
           {buList.map(bu => (
             <span key={bu} style={{ marginRight: '0.5rem' }}>
               {bu} <button onClick={() => removeFromList(bu, setBUList, buList)}>🗑</button>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Business Owners */}
+      <div className="section-block">
+        <h2 className="section-title">👤 Business Owner</h2>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <select className="select" value={selectedBOwner} onChange={e => setSelectedBOwner(e.target.value)}>
+            <option value="">Select Owner</option>
+            {BOwnerOptions.map(o => <option key={o}>{o}</option>)}
+          </select>
+          <button className="btn-primary" type="button" onClick={() => addToList(selectedBOwner, setBusinessOwnerList, businessOwnerList)}>+ Add Owner</button>
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          {businessOwnerList.map(owner => (
+            <span key={owner} style={{ marginRight: '0.5rem' }}>
+              {owner} <button onClick={() => removeFromList(owner, setBusinessOwnerList, businessOwnerList)}>🗑</button>
             </span>
           ))}
         </div>
