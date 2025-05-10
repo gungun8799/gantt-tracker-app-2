@@ -25,7 +25,9 @@ function Navigation() {
       <Link to="/report" className={getClass('/report')}>
         Summary Report
       </Link>
-      <Link to="/recent" className="btn-primary">Recent Updates</Link>
+      <Link to="/recent" className={getClass('/recent')} style={{ marginLeft: '1rem' }}>
+        Recent Updates
+      </Link>
     </nav>
   );
 }
