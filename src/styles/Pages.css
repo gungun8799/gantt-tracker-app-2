@@ -35,6 +35,7 @@
   .label {
     color: #0072CE;
     font-weight: 600;
+
     margin-bottom: 0.25rem;
     display: inline-block;
   }
@@ -42,7 +43,9 @@
   .input, .select {
     border: 1px solid #f4f4f4;
     padding: 0.5rem;
-    border-radius: 4px;
+    border-radius: 6px;
+    margin-left: 10px;
+    border-color: #cacaca;
     width: 100%;
     box-sizing: border-box;
   }
@@ -227,4 +230,226 @@
   
   .stage-count {
     font-size: 1.2rem;
+  }
+
+  .btn-primary {
+    background-color: #cacaca;
+    color: rgb(103, 103, 103);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+  }
+  
+  .btn-active {
+    background-color: #0072CE;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .btn-primary:hover {
+    background-color: #003f82; /* darker blue on hover */
+    color: rgb(208, 208, 208);
+
+  }
+  
+ 
+  .stage-tag {
+    background-color: #0072CE;
+    color: white;
+    padding: 0.4rem 0.75rem;
+    border-radius: 16px;
+    font-weight: bold;
+    display: inline-block;
+  }
+  .stage-tag:hover {
+    background-color: #005eb8;
+  }
+
+
+  .btn-primary-change {
+    background-color: #ffffff;
+    color: rgb(255, 17, 17);
+    padding: 0.4rem 0.75rem;
+    border-radius: 16px;
+    border-color: #ff0000;
+    font-weight: bold;
+    display: inline-block;
+
+  }
+
+  .recent-updates-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  
+  .recent-updates-table th,
+  .recent-updates-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .recent-updates-table th {
+    background-color: #241761;
+    color: #002f55;
+    font-weight: bold;
+  }
+  
+  .recent-updates-table tr:hover {
+    background-color: #f9f9f9;
+  }
+
+  .recent-updates-table th {
+    background-color: #00407b;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 2px solid #e0e0e0;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+  
+  .recent-updates-table td {
+    padding: 0.6rem 1rem;
+    vertical-align: top;
+    font-size: 13.5px;
+  }
+
+  /* Header + Filter */
+.updates-title {
+    font-size: 1.5rem;
+    color: #0072CE;
+    margin-bottom: 1rem;
+  }
+  
+  .updates-filter-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .updates-input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 200px;
+  }
+  
+  /* Collapsible Blocks */
+  .updates-report-block {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  
+  .updates-report-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 15px;
+    color: #333;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+  }
+  
+  .updates-report-title {
+    color: #0072CE;
+  }
+  
+  /* Table Styling */
+  .updates-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  
+  .updates-table th, .updates-table td {
+    padding: 6px 8px;
+    border: 1px solid #eee;
+    text-align: left;
+  }
+  
+  .updates-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    color: #333;
+  }
+
+
+  .collapsible-updates-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 1rem;
+  }
+  
+  .collapsible-updates-table th,
+  .collapsible-updates-table td {
+    padding: 8px;
+    border: 1px solid #eee;
+    text-align: left;
+  }
+  
+  .collapsible-row {
+    background-color: #f9f9f9;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .collapsible-row:hover {
+    background-color: #eaf4ff;
+  }
+  
+  .change-log-row td {
+    padding: 0;
+    background-color: #fff;
+  }
+  
+  .inner-log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  
+  .inner-log-table th,
+  .inner-log-table td {
+    padding: 6px 8px;
+    border: 1px solid #eee;
+    text-align: left;
+  }
+  
+  .inner-log-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+  }
+  
+  .updates-filter-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .updates-input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 220px;
   }

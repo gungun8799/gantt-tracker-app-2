@@ -14,6 +14,10 @@ export default function DashboardPage() {
   const [openStages, setOpenStages] = useState({});
   const [openReports, setOpenReports] = useState({});
   const [reportToDelete, setReportToDelete] = useState(null);
+  const [stageChangeModal, setStageChangeModal] = useState({ open: false, reportIdx: null, newStage: null });
+  const [editingStageIdx, setEditingStageIdx] = useState(null);
+  const [newStageName, setNewStageName] = useState('');
+  
   const toggleReport = (reportId) => {
     setOpenReports(prev => ({ ...prev, [reportId]: !prev[reportId] }));
   };
@@ -267,6 +271,48 @@ export default function DashboardPage() {
         </div>
       )}
 
+
+{stageChangeModal.open && (
+  <div className="modal-backdrop">
+    <div className="modal">
+      {!stageChangeModal.newStage ? (
+        <>
+          <p>Select new stage for this report:</p>
+          {filteredReports[stageChangeModal.reportIdx]?.usedBy?.[0]?.stages.map(s => (
+            <button
+              key={s.stageId}
+              className="btn-secondary"
+              style={{ display: 'block', margin: '0.25rem auto' }}
+              onClick={() => setStageChangeModal(prev => ({ ...prev, newStage: s.stageName }))}
+            >
+              {s.stageName}
+            </button>
+          ))}
+        </>
+      ) : (
+        <>
+          <p>Confirm changing stage to:</p>
+          <strong>{stageChangeModal.newStage}</strong>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                handleCurrentStageChange(stageChangeModal.reportIdx, stageChangeModal.newStage);
+                setStageChangeModal({ open: false, reportIdx: null, newStage: null });
+              }}
+            >
+              ✅ Confirm
+            </button>
+            <button className="btn-secondary" onClick={() => setStageChangeModal({ open: false, reportIdx: null, newStage: null })}>
+              ❌ Cancel
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+)}
+
       {/* FILTERED REPORTS */}
       {filteredReports.map((report, reportIdx) => {
         const reportKey = report.reportId;
@@ -287,19 +333,54 @@ export default function DashboardPage() {
               <>
                 <p><strong>BU:</strong> {report.usedBy[0]?.buName} | <strong>Priority:</strong> {report.usedBy[0]?.priority}</p>
 
-                <label className="label" style={{ flex: '1 1 45%' }}>
-                  Current Stage
-                  <select
-                    className="select"
-                    value={report.currentStage || ''}
-                    onChange={(e) => handleCurrentStageChange(reportIdx, e.target.value)}
-                  >
-                    <option value="">Select Current Stage</option>
-                    {report.usedBy[0]?.stages.map(s => (
-                      <option key={s.stageId} value={s.stageName}>{s.stageName}</option>
-                    ))}
-                  </select>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                {editingStageIdx === reportIdx ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <select
+                      className="select"
+                      value={newStageName}
+                      onChange={e => setNewStageName(e.target.value)}
+                    >
+                      <option value="">Select New Stage</option>
+                      {report.usedBy?.[0]?.stages.map(s => (
+                        <option key={s.stageId} value={s.stageName}>{s.stageName}</option>
+                      ))}
+                    </select>
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        if (newStageName) {
+                          setStageChangeModal({ open: true, reportIdx, newStage: newStageName });
+                          setEditingStageIdx(null);
+                        }
+                      }}
+                    >
+                      ✅ Confirm
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => {
+                        setEditingStageIdx(null);
+                        setNewStageName('');
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div className="stage-tag">
+                      {report.currentStage || 'No Stage Selected'}
+                    </div>
+                    <button
+                      className="btn-primary-change"
+                      onClick={() => setEditingStageIdx(reportIdx)}
+                    >
+                      ✏️ Change Stage
+                    </button>
+                  </div>
+                )}
+              </div>
 
                 {report.usedBy[0]?.stages.map((stage, stageIdx) => {
                   const stageKey = `${report.reportId}-${stage.stageId}`;
