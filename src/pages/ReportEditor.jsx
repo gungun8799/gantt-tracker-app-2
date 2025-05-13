@@ -28,7 +28,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
   };
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         setReports(data);
@@ -41,7 +41,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 
   const deleteReport = async (reportId) => {
     try {
-      const res = await fetch(`${apiUrl}/api/delete-report`, {
+      const res = await fetch(`http://localhost:4000/api/delete-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId }),
@@ -63,22 +63,31 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
     const values = new Set();
   
     reports.forEach(report => {
-      if (keyPath === 'buName') {
-        report.usedBy?.forEach(b => values.add(b.buName));
-      }
+      switch (keyPath) {
+        case 'buName':
+          report.usedBy?.forEach(b => values.add(b.buName));
+          break;
   
-      if (keyPath === 'stageName') {
-        report.usedBy?.[0]?.stages?.forEach(s => values.add(s.stageName));
-      }
+        case 'stageName':
+          report.usedBy?.forEach(b => {
+            b.stages?.forEach(s => values.add(s.stageName));
+          });
+          break;
   
-      if (keyPath === 'rawFile') {
-        report.rawFiles?.forEach(f => values.add(f.fileName));
-      }
+        case 'rawFile':
+          report.rawFiles?.forEach(f => values.add(f.fileName));
+          break;
   
-      if (keyPath === 'PICs') {
-        const currentStage = report.currentStage;
-        const stage = report.usedBy?.[0]?.stages?.find(s => s.stageName === currentStage);
-        stage?.PICs?.forEach(p => values.add(p));
+        case 'PICs':
+          report.usedBy?.forEach(b => {
+            b.stages?.forEach(s => {
+              s.PICs?.forEach(p => values.add(p));
+            });
+          });
+          break;
+  
+        default:
+          break;
       }
     });
   
@@ -125,11 +134,11 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
       );
     }
 
-    if (selectedPIC) {
+    if (selectedPIC.length) {
       filtered = filtered.filter(r => {
         const currentStage = r.currentStage;
         const stage = r.usedBy?.[0]?.stages.find(s => s.stageName === currentStage);
-        return stage?.PICs?.includes(selectedPIC);
+        return stage?.PICs?.some(p => selectedPIC.includes(p));
       });
     }
 
@@ -172,7 +181,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 
   const saveReport = async (report) => {
     try {
-      const res = await fetch(`${apiUrl}/api/update-report`, {
+      const res = await fetch(`http://localhost:4000/api/update-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
@@ -274,19 +283,17 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
           </label>
 
           <label className="label" style={{ flex: '1 1 30%' }}>
-            Person in Charge (PIC)
-          <select
-            className="select"
-            value={selectedPIC}
-            onChange={e => setSelectedPIC(e.target.value)}
-            disabled={!selectedStage}
-          >
-            <option value="">All PICs</option>
-            {uniqueValues('PICs').map(p => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </label>
+              Person in Charge (PIC)
+              <select
+                multiple
+                className="select"
+                onChange={e => handleMultiSelectChange(e, setSelectedPIC)}
+              >
+                {uniqueValues('PICs').map(p => (
+                  <option key={p}>{p}</option>
+                ))}
+              </select>
+            </label>
 
         </div>
 
@@ -373,7 +380,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
                 <p>
                   <strong>BU:</strong> {report.usedBy[0]?.buName} |
                   <strong> Priority:</strong> {report.usedBy[0]?.priority} |
-                  <strong> Business Owner:</strong> {report.businessOwner || 'N/A'}
+                  <strong> Business Owner:</strong> {report.businessOwners || 'N/A'}
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
