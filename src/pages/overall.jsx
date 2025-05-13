@@ -6,6 +6,7 @@ import {
   CheckSquare, Code, BarChart3, Bot
 } from 'lucide-react';
 import './Overall.css';
+const apiUrl = process.env.REACT_APP_BACKEND_URL;
 
 const stageNames = [
   'Gather requirements with user',

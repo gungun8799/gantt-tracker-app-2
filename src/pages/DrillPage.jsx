@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Chart } from 'react-google-charts';
 import '../styles/Pages.css';
+const apiUrl = process.env.REACT_APP_BACKEND_URL;
 
 export default function DrillPage() {
   const { stageName } = useParams();
