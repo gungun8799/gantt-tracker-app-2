@@ -28,7 +28,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
   };
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         setReports(data);
@@ -41,7 +41,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 
   const deleteReport = async (reportId) => {
     try {
-      const res = await fetch(`${apiUrl}/api/delete-report`, {
+      const res = await fetch(`http://localhost:4000/api/delete-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId }),
@@ -172,7 +172,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 
   const saveReport = async (report) => {
     try {
-      const res = await fetch(`${apiUrl}/api/update-report`, {
+      const res = await fetch(`http://localhost:4000/api/update-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)

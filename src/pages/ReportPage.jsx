@@ -16,7 +16,7 @@ export default function ReportPage() {
   });
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(setReports)
       .catch(err => console.error('❌ Failed to fetch reports:', err));
@@ -104,13 +104,16 @@ filtered.forEach((r) => {
     gantt: {
       labelStyle: { fontName: 'Segoe UI', fontSize: 12, color: '#333' },
       trackHeight: 28,
+      criticalPathEnabled: false, // disables thick red lines
+      arrow: {
+        angle: 0,         // no head
+        width: 0,         // no width
+        color: '#ffffff', // invisible
+        radius: 0         // flat line
+      },
       palette: [
-        { color: '#1b9e77' },        // Planned
-        { color: '#a8d5c0' },        // Actual (lighter green)
-        { color: '#d95f02' },
-        { color: '#f7bfa0' },
-        { color: '#7570b3' },
-        { color: '#c4bfe3' }
+        { color: '#1b9e77' },
+        { color: '#a8d5c0' }
       ]
     },
     hAxis: {
@@ -142,34 +145,49 @@ filtered.forEach((r) => {
 
   const getStageRows = (report) => {
     const rows = [];
+    const stagesMap = {};
+    const taskOrder = [];
   
-    (report.usedBy?.[0]?.stages || []).forEach((s, i) => {
+    (report.usedBy?.[0]?.stages || []).forEach(s => {
+      stagesMap[s.stageName] = s;
+    });
+  
+    let previousTaskId = '';
+  
+    stageNames.forEach((stageName, i) => {
+      const s = stagesMap[stageName];
+      if (!s) return;
+      const baseId = `${report.reportId}-STG${i + 1}`;
+  
+      // Planned
       if (s.plannedStart && s.plannedEnd) {
-        // Planned bar
         rows.push([
-          `${report.reportId}-STG${i + 1}`,
-          s.stageName,
+          `${baseId}`,
+          stageName,
           'Planned',
           new Date(s.plannedStart),
           new Date(s.plannedEnd),
           null,
           0,
-          null
+          '' // ← this disables the dependency line
         ]);
+        previousTaskId = baseId;
       }
   
+      // Actual
       if (s.actualStart && s.actualEnd) {
-        // Actual bar
+        const actualId = `${baseId}-actual`;
         rows.push([
-          `${report.reportId}-STG${i + 1}-actual`,
-          `${s.stageName} (Actual)`,
+          actualId,
+          `${stageName} (Actual)`,
           'Actual',
           new Date(s.actualStart),
           new Date(s.actualEnd),
           null,
           0,
-          null
+          previousTaskId // ← Force actual to come after planned
         ]);
+        previousTaskId = actualId;
       }
     });
   

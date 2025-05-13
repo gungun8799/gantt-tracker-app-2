@@ -535,3 +535,57 @@
   .btn-save-stage:hover {
     background-color: #005ec4;
   }
+
+  .days-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    margin-left: 0.5rem;
+  }
+  
+  .days-tag.blue {
+    background-color: #007bff;
+  }
+  
+  .days-tag.orange {
+    background-color: #ffc107;
+    color: black;
+  }
+  
+  .days-tag.red {
+    background-color: #dc3545;
+  }
+
+  .toggle-gantt-btn {
+    margin-top: 0.5rem;
+    background-color: #e9ecef;
+    border: none;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .toggle-gantt-btn:hover {
+    background-color: #ced4da;
+  }
+
+  .btn-back {
+    background-color: none;
+    color: #1f3d7d;
+    border: none;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    transition: background-color 0.2s;
+  }
+  
+  .btn-back:hover {
+    background-color: #e2e2e2;
+  }

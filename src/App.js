@@ -6,7 +6,8 @@ import DataEntryPage from './pages/DataEntryPage';
 import ReportEditor from './pages/ReportEditor';
 import ReportPage from './pages/ReportPage';
 import RecentUpdatesPage from './pages/RecentUpdatesPage';
-
+import OverallPage from './pages/overall';
+import DrillPage from './pages/DrillPage'; // ✅ Add this import
 
 function Navigation() {
   const location = useLocation();
@@ -22,8 +23,11 @@ function Navigation() {
       <Link to="/" className={getClass('/')} style={{ marginRight: '1rem' }}>
         ReportEditor
       </Link>
-      <Link to="/report" className={getClass('/report')}>
+      <Link to="/report" className={getClass('/report')} style={{ marginRight: '1rem' }}>
         Summary Report
+      </Link>
+      <Link to="/overall" className={getClass('/overall')} style={{ marginRight: '1rem' }}>
+        Overall
       </Link>
       <Link to="/recent" className={getClass('/recent')} style={{ marginLeft: '1rem' }}>
         Recent Updates
@@ -42,6 +46,8 @@ function App() {
           <Route path="/entry" element={<DataEntryPage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/recent" element={<RecentUpdatesPage />} />
+          <Route path="/overall" element={<OverallPage />} />
+          <Route path="/drill/:stageName" element={<DrillPage />} /> {/* ✅ Add this route */}
         </Routes>
       </div>
     </Router>

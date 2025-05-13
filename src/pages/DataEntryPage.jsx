@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
-const BOwnerOptions = ["Somchai", "Kanda", "Nattapong"];
+const BOwnerOptions = ["Suchawadee", "Ketsara", "Nipawan","Sirirporn(Thak)"];
 const stageTemplate = [
   "Gather requirements with user",
   "Select File sourcing option",
@@ -339,7 +339,10 @@ const rawFileOptions = [
   "AR | Report Lotus eats",
   "AR | XXCP_GL_ACC_ANALYSIS_NEW_RT",
   "AR | XXCP_Lotus_Trial_Balance_TH_RT",
-  "AR | Partner Report (GRAB, Robinhood,Panda 7-Market)"
+  "AR | Partner Report (GRAB, Robinhood,Panda 7-Market)",
+  "AP - IM030",
+  "AP - IM030.1",
+  "AP - IM903",
 ];
 
 
@@ -348,10 +351,10 @@ const PIC_OPTIONS_PER_STAGE = {
   STG01: ["Ball", "James"],
   STG02: ["Yoong", "James","Jack", "Josh"],
   STG03: ["Aom (Axon)", "Yoong"],
-  STG04: ["Aom (Axon)"],
+  STG04: ["Aom (Axon)", "Yoong"],
   STG05: ["Biz Owner"],
   STG06: ["Jack", "Kamrai"],
-  STG07: ["Biz Owner"],
+  STG07: ["Suchawadee", "Ketsara", "Nipawan","Sirirporn(Thak)"],
   STG08: ["Parama (Si)"],
   STG09: ["Hooray!"]
 };
@@ -367,8 +370,8 @@ export default function DataEntryPage() {
   const [selectedRawFile, setSelectedRawFile] = useState('');
   const [systemName, setSystemName] = useState('');
   const [systemOwner, setSystemOwner] = useState('');
-  const systemNames = ["OBIEE", "Oracle", "Simplicity", "CIS", ];
-    const systemOwners = ["Somchai", "Kanda", "Nattapong"];
+  const systemNames = ["OBIEE", "Oracle", "Simplicity", "CIS","REIM" ];
+    const systemOwners = ["Somchai", "Kanda", "Nattapong", "Sittidet"];
     const [selectedBOwner, setSelectedBOwner] = useState('');
     const [businessOwnerList, setBusinessOwnerList] = useState([]);
   const [stages, setStages] = useState(
@@ -464,7 +467,7 @@ export default function DataEntryPage() {
 
     try {
         
-        const res = await fetch(`${apiUrl}/api/save-report`, {        method: 'POST',
+        const res = await fetch(`http://localhost:4000/api/save-report`, {        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
       });
@@ -545,7 +548,9 @@ export default function DataEntryPage() {
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
           <select className="select" value={selectedRawFile} onChange={e => setSelectedRawFile(e.target.value)} style={{ flex: '1 1 30%' }}>
             <option value="">Select File</option>
-            {rawFileOptions.map(f => <option key={f}>{f}</option>)}
+            {rawFileOptions.map((f, i) => (
+              <option key={`${f}-${i}`}>{f}</option>
+            ))}
           </select>
           <select className="select" value={systemName} onChange={e => setSystemName(e.target.value)} style={{ flex: '1 1 30%' }}>
             <option value="">Select System</option>
