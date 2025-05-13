@@ -9,7 +9,7 @@ export default function RecentUpdatesPage() {
   const [onlyTimeChanges, setOnlyTimeChanges] = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         const grouped = {};

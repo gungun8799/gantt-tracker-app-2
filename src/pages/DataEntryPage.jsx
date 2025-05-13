@@ -467,7 +467,7 @@ export default function DataEntryPage() {
 
     try {
         
-        const res = await fetch(`http://localhost:4000/api/save-report`, {        method: 'POST',
+        const res = await fetch(`${apiUrl}/api/save-report`, {        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
       });

@@ -10,7 +10,7 @@ export default function DrillPage() {
   const [expandedCharts, setExpandedCharts] = useState({});
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         const filtered = data.filter(r => r.currentStage === stageName);

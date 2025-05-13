@@ -16,7 +16,7 @@ export default function ReportPage() {
   });
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(setReports)
       .catch(err => console.error('❌ Failed to fetch reports:', err));
