@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import '../styles/Pages.css';
+import React, { useState, useEffect } from 'react';import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
-const BOwnerOptions = ["Suchawadee", "Ketsara", "Nipawan","Sirirporn(Thak)"];
+
 const stageTemplate = [
   "Gather requirements with user",
   "Select File sourcing option",
@@ -367,13 +366,17 @@ export default function DataEntryPage() {
   const [buList, setBUList] = useState([]);
   const [priority, setPriority] = useState('');
   const [rawFiles, setRawFiles] = useState([]);
+  const [rawFileOptions, setRawFileOptions] = useState([]);
+  const [systemNames, setSystemNames] = useState([]);
+  const [systemOwners, setSystemOwners] = useState([]);
   const [selectedRawFile, setSelectedRawFile] = useState('');
   const [systemName, setSystemName] = useState('');
   const [systemOwner, setSystemOwner] = useState('');
-  const systemNames = ["OBIEE", "Oracle", "Simplicity", "CIS","REIM" ];
-    const systemOwners = ["Somchai", "Kanda", "Nattapong", "Sittidet"];
-    const [selectedBOwner, setSelectedBOwner] = useState('');
-    const [businessOwnerList, setBusinessOwnerList] = useState([]);
+  const [selectedBOwner, setSelectedBOwner] = useState('');
+  const [businessOwnerList, setBusinessOwnerList] = useState([]);
+  const [BOwnerOptions, setBOwnerOptions] = useState([]);
+
+
   const [stages, setStages] = useState(
     stageTemplate.map((name, index) => {
       const id = `STG0${index + 1}`;
@@ -393,9 +396,20 @@ export default function DataEntryPage() {
     })
   );
 
+  useEffect(() => {
+    fetch(`${apiUrl}/api/rawfile-options`).then(res => res.json()).then(setRawFileOptions);
+    fetch(`${apiUrl}/api/bowner-options`).then(res => res.json()).then(setBOwnerOptions);
+    fetch(`${apiUrl}/api/system-names`).then(res => res.json()).then(setSystemNames);
+    fetch(`${apiUrl}/api/system-owners`).then(res => res.json()).then(setSystemOwners);
+  }, []);
+
+  
+
   const addToList = (value, setter, list) => {
     if (value && !list.includes(value)) setter([...list, value]);
   };
+  
+  
 
   const removeFromList = (value, setter, list) => {
     setter(list.filter(item => item !== value));
@@ -403,16 +417,48 @@ export default function DataEntryPage() {
 
   const handleAddRawFile = () => {
     if (selectedRawFile && systemName && systemOwner) {
-      setRawFiles([...rawFiles, {
-        fileName: selectedRawFile,
-        systemName,
-        systemOwner
-      }]);
+      setRawFiles([...rawFiles, { fileName: selectedRawFile, systemName, systemOwner }]);
       setSelectedRawFile('');
       setSystemName('');
       setSystemOwner('');
     }
+    if (!rawFileOptions.includes(selectedRawFile)) {
+      setRawFileOptions(prev => [...prev, selectedRawFile]);
+      fetch(`${apiUrl}/api/save-rawfile-option`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: selectedRawFile })
+      });
+    }
+    if (!systemNames.includes(systemName)) {
+      setSystemNames(prev => [...prev, systemName]);
+      fetch(`${apiUrl}/api/save-system-name`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: systemName })
+      });
+    }
+    if (!systemOwners.includes(systemOwner)) {
+      setSystemOwners(prev => [...prev, systemOwner]);
+      fetch(`${apiUrl}/api/save-system-owner`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: systemOwner })
+      });
+    }
   };
+
+  const handleAddBOwner = () => {
+    if (selectedBOwner) {
+      if (!BOwnerOptions.includes(selectedBOwner)) {
+        setBOwnerOptions(prev => [...prev, selectedBOwner]);
+        fetch(`${apiUrl}/api/save-bowner-option`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: selectedBOwner })
+        });
+      }
+      addToList(selectedBOwner, setBusinessOwnerList, businessOwnerList);
+    }
+  };
+
+  
 
   const handleRemoveRawFile = (fileName) => {
     setRawFiles(rawFiles.filter(f => f.fileName !== fileName));
@@ -434,6 +480,7 @@ export default function DataEntryPage() {
     setStages(updated);
   };
 
+  
   const handleRemovePIC = (i, name) => {
     const updated = [...stages];
     updated[i].PICs = updated[i].PICs.filter(p => p !== name);
@@ -524,43 +571,77 @@ export default function DataEntryPage() {
       </div>
 
       {/* Business Owners */}
-      <div className="section-block">
-        <h2 className="section-title">👤 Business Owner</h2>
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <select className="select" value={selectedBOwner} onChange={e => setSelectedBOwner(e.target.value)}>
-            <option value="">Select Owner</option>
-            {BOwnerOptions.map(o => <option key={o}>{o}</option>)}
-          </select>
-          <button className="btn-primary" type="button" onClick={() => addToList(selectedBOwner, setBusinessOwnerList, businessOwnerList)}>+ Add Owner</button>
-        </div>
-        <div style={{ marginBottom: '1rem' }}>
-          {businessOwnerList.map(owner => (
-            <span key={owner} style={{ marginRight: '0.5rem' }}>
-              {owner} <button onClick={() => removeFromList(owner, setBusinessOwnerList, businessOwnerList)}>🗑</button>
-            </span>
-          ))}
-        </div>
-      </div>
+  <div className="section-block">
+  <h2 className="section-title">👤 Business Owner</h2>
+  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+    <input
+      className="input"
+      list="bowner-list"
+      value={selectedBOwner}
+      onChange={e => setSelectedBOwner(e.target.value)}
+      placeholder="Type or select business owner"
+    />
+    <datalist id="bowner-list">
+      {BOwnerOptions.map(o => <option key={o} value={o} />)}
+    </datalist>
+    <button
+      className="btn-primary"
+      type="button"
+      onClick={handleAddBOwner} // ✅ call extracted logic
+    >
+      + Add Owner
+    </button>
+  </div>
+  <div style={{ marginBottom: '1rem' }}>
+    {businessOwnerList.map(owner => (
+      <span key={owner} style={{ marginRight: '0.5rem' }}>
+        {owner}{' '}
+        <button onClick={() => removeFromList(owner, setBusinessOwnerList, businessOwnerList)}>🗑</button>
+      </span>
+    ))}
+  </div>
+</div>
 
       {/* Raw Files */}
       <div className="section-block">
         <h2 className="section-title">📂 Raw Files</h2>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <select className="select" value={selectedRawFile} onChange={e => setSelectedRawFile(e.target.value)} style={{ flex: '1 1 30%' }}>
-            <option value="">Select File</option>
-            {rawFileOptions.map((f, i) => (
-              <option key={`${f}-${i}`}>{f}</option>
-            ))}
-          </select>
-          <select className="select" value={systemName} onChange={e => setSystemName(e.target.value)} style={{ flex: '1 1 30%' }}>
-            <option value="">Select System</option>
-            {systemNames.map(sys => <option key={sys}>{sys}</option>)}
-            </select>
+        <input
+              className="input"
+              list="raw-file-list"
+              value={selectedRawFile}
+              onChange={e => setSelectedRawFile(e.target.value)}
+              placeholder="Type or select raw file"
+              style={{ flex: '1 1 30%' }}
+            />
+            <datalist id="raw-file-list">
+              {rawFileOptions.map((f, i) => (
+                <option key={`${f}-${i}`} value={f} />
+              ))}
+            </datalist>
+            <input
+  className="input"
+  list="system-name-list"
+  value={systemName}
+  onChange={e => setSystemName(e.target.value)}
+  placeholder="Type or select system"
+  style={{ flex: '1 1 30%' }}
+/>
+<datalist id="system-name-list">
+  {systemNames.map(sys => <option key={sys} value={sys} />)}
+</datalist>
 
-            <select className="select" value={systemOwner} onChange={e => setSystemOwner(e.target.value)} style={{ flex: '1 1 30%' }}>
-            <option value="">Select Owner</option>
-            {systemOwners.map(owner => <option key={owner}>{owner}</option>)}
-            </select>
+<input
+  className="input"
+  list="system-owner-list"
+  value={systemOwner}
+  onChange={e => setSystemOwner(e.target.value)}
+  placeholder="Type or select owner"
+  style={{ flex: '1 1 30%' }}
+/>
+<datalist id="system-owner-list">
+  {systemOwners.map(owner => <option key={owner} value={owner} />)}
+</datalist>
           <button className="btn-primary" type="button" onClick={handleAddRawFile}>+ Add</button>
         </div>
         <ul>
