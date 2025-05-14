@@ -213,8 +213,10 @@ filtered.forEach((r) => {
         <div className="section-title">🎯 Filters & Summary</div>
         <div className="filter-summary-row" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
   {/* 🔹 Left: Filter Fields */}
+  
   <div className="filter-grid" style={{ flex: '1' }}>
     <div className="filter-item-full">
+
       <label htmlFor="reportNameInput" className="filter-label">Search Report Name</label>
       <input
         id="reportNameInput"
@@ -224,7 +226,14 @@ filtered.forEach((r) => {
         value={filters.name}
         onChange={e => setFilters({ ...filters, name: e.target.value })}
       />
+          <button
+        className="btn-secondary-clear"
+        onClick={() => setFilters({ name: '', bu: [], stage: [], file: [], pic: [] })}
+      >
+        ❌ Clear Filters
+    </button>
     </div>
+    
 
     {["bu", "stage", "file", "pic"].map((key, i) => (
       <div className="filter-item" key={i}>
@@ -247,13 +256,9 @@ filtered.forEach((r) => {
     ))}
 
     <div className="filter-item-full" style={{ textAlign: 'right' }}>
-      <button
-        className="btn-secondary-clear"
-        onClick={() => setFilters({ name: '', bu: [], stage: [], file: [], pic: [] })}
-      >
-        ❌ Clear Filters
-      </button>
+
     </div>
+
   </div>
 
   {/* 🔸 Right: Summary Cards */}

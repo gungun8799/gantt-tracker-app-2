@@ -66,6 +66,16 @@
     font-weight: bold;
     cursor: pointer;
   }
+
+  .btn-primary-save {
+    background-color: #00e604;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+  }
   
   .btn-primary:hover {
     background-color: #005EB8;
@@ -173,6 +183,7 @@
   .summary-card-report {
     background: white;
     border-radius: 8px;
+    height: 180px;
     padding: 1rem;
     box-shadow: 0 0 10px rgba(0,0,0,0.15);
     max-width: 200px;
@@ -233,6 +244,16 @@
     border: none;
     padding: 0.5rem 1rem;
     cursor: pointer;
+    
+  }
+
+  .btn-danger-delete {
+    background-color: rgb(255, 255, 255);
+    color: rgb(255, 82, 82);
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+
   }
   
   .btn-secondary {
@@ -247,11 +268,11 @@
     background-color: white;
     color: black;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.1rem 0.5rem;
     cursor: pointer;
     display: block;           /* makes it respect container alignment */
     margin-left: 0; 
-    width: 200px;          /* ensures it starts at the left */
+    width: 120px;          /* ensures it starts at the left */
   }
 
   .gantt-block {
@@ -753,7 +774,10 @@
 .filter-item-full {
   grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;         /* ⬅️ Changed from column */
+  align-items: center;         /* Align items vertically */
+  gap: 1rem;                   /* Add spacing between items */
+  flex-wrap: wrap;             /* Optional: allows wrapping on small screens */
 }
 
 .filter-label {

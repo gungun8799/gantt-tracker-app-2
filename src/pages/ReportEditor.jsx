@@ -508,7 +508,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 })}
 
                 <button
-                  className="btn-primary"
+                  className="btn-primary-save"
                   style={{ marginTop: '1rem' }}
                   onClick={() => saveReport(report)}
                 >
@@ -516,7 +516,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
                 </button>
 
                 <button
-  className="btn-danger"
+  className="btn-danger-delete"
   style={{ marginLeft: '1rem' }}
   onClick={() => setReportToDelete(report)}
 >
