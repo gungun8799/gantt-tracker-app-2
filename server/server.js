@@ -249,6 +249,30 @@ app.post('/api/save-system-name', async (req, res) => {
   }
 });
 
+// 🔐 Login route
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const snapshot = await db
+      .collection('users_login')
+      .where('email', '==', email)
+      .where('password', '==', password)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const userData = snapshot.docs[0].data();
+    return res.json({ email: userData.email, role: userData.role });
+  } catch (err) {
+    console.error('❌ Login error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 // === 🔁 SYSTEM OWNERS ===
 app.get('/api/system-owners', async (req, res) => {
