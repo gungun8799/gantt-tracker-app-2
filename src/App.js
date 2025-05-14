@@ -1,54 +1,64 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import './styles/Pages.css';
+import { Menu, FileText, Table, BarChart, Clock, List } from 'lucide-react';
 
 import DataEntryPage from './pages/DataEntryPage';
 import ReportEditor from './pages/ReportEditor';
 import ReportPage from './pages/ReportPage';
 import RecentUpdatesPage from './pages/RecentUpdatesPage';
 import OverallPage from './pages/overall';
-import DrillPage from './pages/DrillPage'; // ✅ Add this import
+import DrillPage from './pages/DrillPage';
 
-function Navigation() {
+function Sidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  const getClass = (path) => currentPath === path ? 'btn-active' : 'btn-primary';
+  const links = [
+    { path: '/entry', label: 'Data Entry', icon: <FileText size={18} /> },
+    { path: '/', label: 'ReportEditor', icon: <Table size={18} /> },
+    { path: '/report', label: 'Summary Report', icon: <BarChart size={18} /> },
+    { path: '/overall', label: 'Overall', icon: <List size={18} /> },
+    { path: '/recent', label: 'Recent Updates', icon: <Clock size={18} /> },
+  ];
+
+  const getClass = (path) => currentPath === path ? 'sidebar-link active' : 'sidebar-link';
 
   return (
-    <nav style={{ borderBottom: '2px solid #f4f4f4', marginBottom: '1rem', paddingBottom: '0.5rem' }}>
-      <Link to="/entry" className={getClass('/entry')} style={{ marginRight: '1rem' }}>
-        Data Entry
-      </Link>
-      <Link to="/" className={getClass('/')} style={{ marginRight: '1rem' }}>
-        ReportEditor
-      </Link>
-      <Link to="/report" className={getClass('/report')} style={{ marginRight: '1rem' }}>
-        Summary Report
-      </Link>
-      <Link to="/overall" className={getClass('/overall')} style={{ marginRight: '1rem' }}>
-        Overall
-      </Link>
-      <Link to="/recent" className={getClass('/recent')} style={{ marginLeft: '1rem' }}>
-        Recent Updates
-      </Link>
-    </nav>
+    <div className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}>
+      <button className="sidebar-toggle" onClick={() => setIsExpanded(!isExpanded)}>
+        <Menu />
+      </button>
+      <ul className="sidebar-list">
+        {links.map(({ path, label, icon }) => (
+          <li key={path}>
+            <Link to={path} className={getClass(path)}>
+              {icon}
+              {isExpanded && <span className="sidebar-label">{label}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
 function App() {
   return (
     <Router>
-      <div className="page-container">
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<ReportEditor />} />
-          <Route path="/entry" element={<DataEntryPage />} />
-          <Route path="/report" element={<ReportPage />} />
-          <Route path="/recent" element={<RecentUpdatesPage />} />
-          <Route path="/overall" element={<OverallPage />} />
-          <Route path="/drill/:stageName" element={<DrillPage />} /> {/* ✅ Add this route */}
-        </Routes>
+      <div className="app-layout">
+        <Sidebar />
+        <div className="main-content">
+          <Routes>
+            <Route path="/" element={<ReportEditor />} />
+            <Route path="/entry" element={<DataEntryPage />} />
+            <Route path="/report" element={<ReportPage />} />
+            <Route path="/recent" element={<RecentUpdatesPage />} />
+            <Route path="/overall" element={<OverallPage />} />
+            <Route path="/drill/:stageName" element={<DrillPage />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   );

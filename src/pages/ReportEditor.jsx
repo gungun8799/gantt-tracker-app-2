@@ -8,8 +8,7 @@ export default function DashboardPage() {
   const [selectedPIC, setSelectedPIC] = useState('');
   const [reportNameQuery, setReportNameQuery] = useState('');
   const [selectedBUs, setSelectedBUs] = useState([]);
-  const [selectedStage, setSelectedStage] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedStage, setSelectedStage] = useState([]);  const [selectedFiles, setSelectedFiles] = useState([]);
 
   const [openStages, setOpenStages] = useState({});
   const [openReports, setOpenReports] = useState({});
@@ -86,6 +85,10 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
           });
           break;
   
+        case 'businessOwners':
+          report.businessOwners?.forEach(owner => values.add(owner));
+          break;
+  
         default:
           break;
       }
@@ -120,12 +123,14 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
       filtered = filtered.filter(r => selectedBUs.includes(r.usedBy[0]?.buName));
     }
 
-    if (businessOwner && businessOwner.trim()) {
-      filtered = filtered.filter(r => r.businessOwner?.includes(businessOwner));
+    if (businessOwnerList.length) {
+      filtered = filtered.filter(r =>
+        r.businessOwners?.some(bo => businessOwnerList.includes(bo))
+      );
     }
 
-    if (selectedStage) {
-      filtered = filtered.filter(r => r.currentStage === selectedStage);
+    if (selectedStage.length) {
+      filtered = filtered.filter(r => selectedStage.includes(r.currentStage));
     }
 
     if (selectedFiles.length) {
@@ -200,105 +205,102 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
   return (
     <div className="page-container">
       <h1>📊 Report Update</h1>
-
+  
       {/* FILTER SECTION */}
-      <div className="section-block">
-        <h2 className="section-title">🔍 Filter Reports</h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-          <label className="label" style={{ flex: '1 1 100%' }}>
+      <div className="section-block-3">
+        <h2 className="section-title-filter">🔍 Filter Reports</h2>
+  
+        {/* Top Search Field */}
+        <div style={{ marginBottom: '1rem' }}>
+          <label className="label-filter" htmlFor="reportNameInput">
             Search by Report Name
-            <input
-              className="input"
-              type="text"
-              placeholder="e.g. Daily Sales"
-              value={reportNameQuery}
-              onChange={e => setReportNameQuery(e.target.value)}
-            />
           </label>
-
-          <label className="label" style={{ flex: '1 1 100%' }}>
-            Business Units
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-              {uniqueValues('buName').map(bu => (
-                <label key={bu} style={{ display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedBUs.includes(bu)}
-                    onChange={() => handleCheckboxChange(bu, setSelectedBUs, selectedBUs)}
-                  />
-                  <span style={{ marginLeft: '0.5rem' }}>{bu}</span>
-                </label>
-              ))}
-            </div>
-          </label>
-
-          <label className="label" style={{ flex: '1 1 100%' }}>
-            Business Owner
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-              <input
-                className="input"
-                placeholder="e.g. Kanda"
-                value={businessOwner}
-                onChange={e => setBusinessOwner(e.target.value)}
-                style={{ flex: '1 1 50%' }}
-              />
-              <button
-                className="btn-primary"
-                type="button"
-                onClick={() => {
-                  if (businessOwner && !businessOwnerList.includes(businessOwner)) {
-                    setBusinessOwnerList(prev => [...prev, businessOwner]);
-                  }
-                }}
-              >
-                + Add
-              </button>
-            </div>
-            <div style={{ marginTop: '0.5rem' }}>
-              {businessOwnerList.map((bo, i) => (
-                <span key={i} style={{ marginRight: '0.5rem' }}>
-                  {bo} <button onClick={() => setBusinessOwnerList(prev => prev.filter(b => b !== bo))}>🗑</button>
-                </span>
-              ))}
-            </div>
-          </label>
-
-          <label className="label" style={{ flex: '1 1 30%' }}>
-            Stage
-            <select className="select" value={selectedStage} onChange={e => setSelectedStage(e.target.value)}>
-              <option value="">All Stages</option>
-              {uniqueValues('stageName').map(stage => (
-                <option key={stage}>{stage}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="label" style={{ flex: '1 1 30%' }}>
-            Raw Files
-            <select multiple className="select" onChange={e => handleMultiSelectChange(e, setSelectedFiles)}>
-              {uniqueValues('rawFile').map(file => (
-                <option key={file}>{file}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="label" style={{ flex: '1 1 30%' }}>
-              Person in Charge (PIC)
+          <input
+            id="reportNameInput"
+            className="input-report-name"
+            type="text"
+            placeholder="e.g. Report name"
+            value={reportNameQuery}
+            onChange={e => setReportNameQuery(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </div>
+  
+        {/* Grid-based Filters */}
+        <div className="page-container-filter">
+          {[
+            {
+              label: 'Business Units',
+              values: uniqueValues('buName'),
+              selected: selectedBUs,
+              setter: setSelectedBUs,
+            },
+            {
+              label: 'Business Owners',
+              values: uniqueValues('businessOwners'),
+              selected: businessOwnerList,
+              setter: setBusinessOwnerList,
+            },
+            {
+              label: 'Stages',
+              values: uniqueValues('stageName'),
+              selected: selectedStage,
+              setter: setSelectedStage,
+            },
+            {
+              label: 'Raw Files',
+              values: uniqueValues('rawFile'),
+              selected: selectedFiles,
+              setter: setSelectedFiles,
+            },
+            {
+              label: 'Person in Charge (PIC)',
+              values: uniqueValues('PICs'),
+              selected: selectedPIC,
+              setter: setSelectedPIC,
+            }
+          ].map((item, i) => (
+            <div key={i}>
+              <label className="label-filter" style={{ marginBottom: '0.5rem', display: 'block' }}>
+                {item.label}
+              </label>
               <select
                 multiple
                 className="select"
-                onChange={e => handleMultiSelectChange(e, setSelectedPIC)}
+                value={item.selected}
+                onChange={e => {
+                  const options = Array.from(e.target.selectedOptions, opt => opt.value);
+                  item.setter(options);
+                }}
+                style={{ width: '100%' }}
               >
-                {uniqueValues('PICs').map(p => (
-                  <option key={p}>{p}</option>
+                {item.values.map(v => (
+                  <option key={v}>{v}</option>
                 ))}
               </select>
-            </label>
-
+            </div>
+          ))}
         </div>
-
+ 
+        
         <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={handleQuery}>
           🔍 Query Reports
+        </button>
+        <button
+          className="btn-secondary"
+          style={{ marginTop: '1rem', marginLeft: '1rem' }}
+          onClick={() => {
+            setReportNameQuery('');
+            setSelectedBUs([]);
+            setSelectedStage([]);
+            setSelectedFiles([]);
+            setSelectedPIC('');
+            setBusinessOwner('');
+            setBusinessOwnerList([]);
+            setFilteredReports(reports); // reset to all
+          }}
+        >
+          🔄 Clear Filters
         </button>
       </div>
 
@@ -464,7 +466,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
       {isStageOpen && (
   <>
     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-      <label className="label" style={{ flex: '1 1 45%' }}>
+      <label className="label-editor" style={{ flex: '1 1 45%' }}>
         Actual Start
         <input
           type="date"
@@ -473,7 +475,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
           onChange={e => handleFieldChange(reportIdx, stageIdx, 'actualStart', e.target.value)}
         />
       </label>
-      <label className="label" style={{ flex: '1 1 45%' }}>
+      <label className="label-editor" style={{ flex: '1 1 45%' }}>
         Actual End
         <input
           type="date"
@@ -482,7 +484,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
           onChange={e => handleFieldChange(reportIdx, stageIdx, 'actualEnd', e.target.value)}
         />
       </label>
-      <label className="label" style={{ flex: '1 1 100%' }}>
+      <label className="label-editor" style={{ flex: '1 1 100%' }}>
         Remark/Issues
         <textarea
           className="input-remark"

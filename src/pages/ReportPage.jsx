@@ -9,10 +9,10 @@ export default function ReportPage() {
   const [scale, setScale] = useState('Month');
   const [filters, setFilters] = useState({
     name: '',
-    bu: '',
-    stage: '',
-    file: '',
-    pic: ''
+    bu: [],
+    stage: [],
+    file: [],
+    pic: []
   });
 
   useEffect(() => {
@@ -23,9 +23,9 @@ export default function ReportPage() {
   }, []);
 
   const scaleWidths = {
-    Week: '1600px',
-    Month: '1200px',
-    Quarter: '900px'
+    Week: '1500px',
+    Month: '1000px',
+    Quarter: '800px'
   };
 
 
@@ -65,10 +65,9 @@ reports.forEach((r) => {
     const currentStage = r.usedBy?.[0]?.stages.find(s => s.stageName === currentStageName);
   
     const nameMatch = !filters.name || r.reportName.toLowerCase().includes(filters.name.toLowerCase());
-    const buMatch = !filters.bu || r.usedBy?.[0]?.buName === filters.bu;
-    const fileMatch = !filters.file || r.rawFiles?.some(f => f.fileName === filters.file);
-    const stageMatch = !filters.stage || currentStageName === filters.stage;
-    const picMatch = !filters.pic || currentStage?.PICs?.includes(filters.pic);
+    const buMatch = !filters.bu.length || filters.bu.includes(r.usedBy?.[0]?.buName);    const stageMatch = !filters.stage.length || filters.stage.includes(currentStageName);
+const fileMatch = !filters.file.length || r.rawFiles?.some(f => filters.file.includes(f.fileName));
+const picMatch = !filters.pic.length || currentStage?.PICs?.some(p => filters.pic.includes(p));
   
     return nameMatch && buMatch && fileMatch && stageMatch && picMatch;
   });
@@ -103,7 +102,7 @@ filtered.forEach((r) => {
   const ganttOptions = {
     gantt: {
       labelStyle: { fontName: 'Segoe UI', fontSize: 12, color: '#333' },
-      trackHeight: 28,
+      trackHeight: 26,
       criticalPathEnabled: false, // disables thick red lines
       arrow: {
         angle: 0,         // no head
@@ -127,13 +126,29 @@ filtered.forEach((r) => {
 
   const getOverallRow = (report) => {
     const stages = report.usedBy?.[0]?.stages || [];
-    const valid = stages.filter(s => s.plannedStart && s.plannedEnd);
-    if (!valid.length) return null;
-    const minStart = new Date(Math.min(...valid.map(s => new Date(s.plannedStart))));
-    const maxEnd = new Date(Math.max(...valid.map(s => new Date(s.plannedEnd))));
+  
+    // Collect all dates from both planned and actual
+    const allDates = stages.flatMap(stage => {
+      const dates = [];
+      if (stage.plannedStart && stage.plannedEnd) {
+        dates.push(new Date(stage.plannedStart));
+        dates.push(new Date(stage.plannedEnd));
+      }
+      if (stage.actualStart && stage.actualEnd) {
+        dates.push(new Date(stage.actualStart));
+        dates.push(new Date(stage.actualEnd));
+      }
+      return dates;
+    });
+  
+    if (allDates.length === 0) return null;
+  
+    const minStart = new Date(Math.min(...allDates));
+    const maxEnd = new Date(Math.max(...allDates));
+  
     return [
-      report.reportId,
-      `${expandedReports[report.reportId] ? '▼' : '▶'} ${report.reportName}`,
+      `${report.reportId}-overall`,
+      ``,  // 👈 pad to fixed length
       'Overall',
       minStart,
       maxEnd,
@@ -146,13 +161,10 @@ filtered.forEach((r) => {
   const getStageRows = (report) => {
     const rows = [];
     const stagesMap = {};
-    const taskOrder = [];
   
     (report.usedBy?.[0]?.stages || []).forEach(s => {
       stagesMap[s.stageName] = s;
     });
-  
-    let previousTaskId = '';
   
     stageNames.forEach((stageName, i) => {
       const s = stagesMap[stageName];
@@ -163,15 +175,14 @@ filtered.forEach((r) => {
       if (s.plannedStart && s.plannedEnd) {
         rows.push([
           `${baseId}`,
-          stageName,
+          `${stageName.padEnd(40, ' ')}`, // 👈 fixed label width
           'Planned',
           new Date(s.plannedStart),
           new Date(s.plannedEnd),
           null,
           0,
-          '' // ← this disables the dependency line
+          `${report.reportId}-overall`
         ]);
-        previousTaskId = baseId;
       }
   
       // Actual
@@ -185,9 +196,8 @@ filtered.forEach((r) => {
           new Date(s.actualEnd),
           null,
           0,
-          previousTaskId // ← Force actual to come after planned
+          `${report.reportId}-overall` // 👈 Add dependency to overall row
         ]);
-        previousTaskId = actualId;
       }
     });
   
@@ -197,178 +207,168 @@ filtered.forEach((r) => {
   return (
     <div className="page-container">
       <h1>📈 Gantt Chart Report Summary</h1>
-
-      <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'nowrap' }}>  {/* Filters Section (left) */}
-  <div className="section-block-filter" style={{ flex: '0 0 250px' }}>
-    <div className="section-title">🎯 Filters</div>
-    <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
-      <input className="input" placeholder="Search Report Name"
+  
+      {/* 🔼 Filters and Summary Section */}
+      <div className="section-block-filter-merged">
+        <div className="section-title">🎯 Filters & Summary</div>
+        <div className="filter-summary-row" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+  {/* 🔹 Left: Filter Fields */}
+  <div className="filter-grid" style={{ flex: '1' }}>
+    <div className="filter-item-full">
+      <label htmlFor="reportNameInput" className="filter-label">Search Report Name</label>
+      <input
+        id="reportNameInput"
+        className="filter-input"
+        type="text"
+        placeholder="e.g. Report name"
         value={filters.name}
-        onChange={e => setFilters({ ...filters, name: e.target.value })} />
+        onChange={e => setFilters({ ...filters, name: e.target.value })}
+      />
+    </div>
 
-      <select className="select" value={filters.bu} onChange={e => setFilters({ ...filters, bu: e.target.value })}>
-        <option value="">All BUs</option>
-        {unique('bu').map(b => <option key={b}>{b}</option>)}
-      </select>
+    {["bu", "stage", "file", "pic"].map((key, i) => (
+      <div className="filter-item" key={i}>
+        <label className="filter-label">{key === 'bu' ? 'Business Units' : key === 'stage' ? 'Stages' : key === 'file' ? 'Raw Files' : 'Person in Charge (PIC)'}</label>
+        <select
+          multiple
+          className="filter-select"
+          value={filters[key]}
+          onChange={e => {
+            const options = Array.from(e.target.selectedOptions, opt => opt.value);
+            setFilters(prev => ({ ...prev, [key]: options }));
+          }}
+        >
+          <option value="">All</option>
+          {unique(key).map(v => (
+            <option key={v}>{v}</option>
+          ))}
+        </select>
+      </div>
+    ))}
 
-      <select className="select" value={filters.stage} onChange={e => setFilters({ ...filters, stage: e.target.value })}>
-        <option value="">All Stages</option>
-        {unique('stage').map(s => <option key={s}>{s}</option>)}
-      </select>
-
-      <select className="select" value={filters.file} onChange={e => setFilters({ ...filters, file: e.target.value })}>
-        <option value="">All Files</option>
-        {unique('file').map(f => <option key={f}>{f}</option>)}
-      </select>
-
-      <select className="select" value={filters.pic} onChange={e => setFilters({ ...filters, pic: e.target.value })}>
-        <option value="">All PICs</option>
-        {unique('pic').map(p => <option key={p}>{p}</option>)}
-      </select>
-
-      <button className="btn-secondary" onClick={() => setFilters({ name: '', bu: '', stage: '', file: '', pic: '' })}>
-        ❌ Clear
+    <div className="filter-item-full" style={{ textAlign: 'right' }}>
+      <button
+        className="btn-secondary-clear"
+        onClick={() => setFilters({ name: '', bu: [], stage: [], file: [], pic: [] })}
+      >
+        ❌ Clear Filters
       </button>
     </div>
   </div>
 
-  {/* Summary Cards (right) */}
-  <div className="summary-cards-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: '1' }}>
-    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-      {/* PIC Summary */}
-      <div className="summary-card" style={{ flex: '1 1 30%' }}>
-        <h3>📋 Pending Reports by PIC</h3>
-        <ul>
-          {Object.entries(
-            filtered.reduce((acc, report) => {
-              const currentStage = report.usedBy?.[0]?.stages.find(s => s.stageName === report.currentStage);
-              const pics = currentStage?.PICs || [];
-              pics.forEach(pic => {
-                acc[pic] = (acc[pic] || 0) + 1;
-              });
-              return acc;
-            }, {})
-          ).map(([pic, count]) => (
-            <li key={pic}><strong>{pic}</strong>: {count}</li>
-          ))}
-        </ul>
-      </div>
+  {/* 🔸 Right: Summary Cards */}
+  <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', minWidth: '250px' }}>    <div className="summary-card-report">
+      <h3>📋 Pending Reports by PIC</h3>
+      <ul>
+        {Object.entries(
+          filtered.reduce((acc, report) => {
+            const currentStage = report.usedBy?.[0]?.stages.find(s => s.stageName === report.currentStage);
+            const pics = currentStage?.PICs || [];
+            pics.forEach(pic => {
+              acc[pic] = (acc[pic] || 0) + 1;
+            });
+            return acc;
+          }, {})
+        ).map(([pic, count]) => (
+          <li key={pic}><strong>{pic}</strong>: {count}</li>
+        ))}
+      </ul>
+    </div>
 
-      {/* BU Summary */}
-      <div className="summary-card" style={{ flex: '1 1 30%' }}>
-        <h3>🏢 Pending Reports by BU</h3>
-        <ul>
-          {Object.entries(
-            filtered.reduce((acc, report) => {
-              const bu = report.usedBy?.[0]?.buName || 'Unknown';
-              acc[bu] = (acc[bu] || 0) + 1;
-              return acc;
-            }, {})
-          ).map(([bu, count]) => (
-            <li key={bu}><strong>{bu}</strong>: {count}</li>
-          ))}
-        </ul>
-      </div>
+    <div className="summary-card-report">
+      <h3>🏢 Pending Reports by BU</h3>
+      <ul>
+        {Object.entries(
+          filtered.reduce((acc, report) => {
+            const bu = report.usedBy?.[0]?.buName || 'Unknown';
+            acc[bu] = (acc[bu] || 0) + 1;
+            return acc;
+          }, {})
+        ).map(([bu, count]) => (
+          <li key={bu}><strong>{bu}</strong>: {count}</li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</div>
 
-      {/* Pipeline by Stage */}
-      <div className="summary-card" style={{ flex: '1 1 100%' }}>
-        <h3>📊 Pipeline by Stage</h3>
-        <div className="stage-pipeline-grid">
-          {stageNames.map(stage => (
-            <div
-              key={stage}
-              className={`stage-cell ${stage === 'Done' ? 'stage-done' : ''}`}
-            >
-              <div className="stage-name">{stage}</div>
-              <div className="stage-count">{stagePipeline[stage]}</div>
+        
+  
+        {/* Summary Cards */}
+        <div className="filter-summary-cards-row">
+          
+  
+          <div className="summary-card-pipeline">
+            <h3>📊 Pipeline by Stage</h3>
+            <div className="stage-pipeline-grid">
+              {stageNames.map(stage => (
+                <div
+                  key={stage}
+                  className={`stage-cell ${stage === 'Done' ? 'stage-done' : ''}`}
+                >
+                  <div className="stage-name">{stage}</div>
+                  <div className="stage-count">{stagePipeline[stage]}</div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          
+
+          
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-{/* Gantt List View */}
-<div className="report-container">
+  
+      {/* Gantt List View */}
+      <div className="report-container">
   {filtered.map((report) => {
-    const overallRow = getOverallRow(report);
-    const stageRows = getStageRows(report);
     const isExpanded = expandedReports[report.reportId];
+    const allRows = [
+      getOverallRow(report), 
+      ...(isExpanded ? getStageRows(report) : [])
+    ].filter(Boolean);
 
     return (
-        <div key={report.reportId} className="report-row" style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', marginBottom: '1rem' }}>
-        {/* Left Info (Extra Column) */}
+      <div key={report.reportId} className="report-row">
         <div
-  className="report-info"
-  onClick={() => toggleReport(report.reportId)}
-  style={{
-    cursor: 'pointer',
-    width: '100%',
-    maxWidth: '600px'
-  }}
->
-  <h3 className="report-title" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-    {isExpanded ? '▼' : '▶'} {report.reportName} ({report.reportId})
-    <span className="stage-tag">{report.currentStage || 'No Stage'}</span>
-  </h3>
-
-  <div
-    style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      gap: '1rem',
-      flexWrap: 'wrap'
-    }}
-  >
-    <div style={{ flex: '1' }}><strong>BU:</strong> {report.usedBy?.[0]?.buName || '-'}</div>
-    <div style={{ flex: '1' }}>
-  <strong>Biz Owner:</strong> {report.usedBy?.[0]?.businessOwner || '-'}
-</div>
-    <div style={{ flex: '1' }}><strong>Stage:</strong> {report.currentStage || '-'}</div>
-    <div style={{ flex: '1' }}>
-      <strong>Current PICs:</strong>{' '}
-      {
-        (report.usedBy?.[0]?.stages || [])
-          .find(s => s.stageName === report.currentStage)?.PICs?.join(', ') || '-'
-      }
-    </div>
-    <div style={{ flex: '2' }}>
-      <strong>Issues:</strong>{' '}
-      {
-        (report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.issueDescription || '-'
-      }
-    </div>
-  </div>
-</div>
-      
-        {/* Right Chart */}
-        <div className="report-gantt" style={{ flex: 1 }}>
-          {overallRow && (
+          className="report-info"
+          onClick={() => toggleReport(report.reportId)}
+          style={{
+            cursor: 'pointer',
+            width: '100%'
+          }}
+        >
+          <h3 className="report-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {isExpanded ? '▼' : '▶'} {report.reportName} ({report.reportId})
+            <span className="stage-tag">{report.currentStage || 'No Stage'}</span>
+          </h3>
+    
+          {isExpanded && (
+            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div><strong>BU:</strong> {report.usedBy?.[0]?.buName || '-'}</div>
+              <div><strong>Biz Owner:</strong> {report.usedBy?.[0]?.businessOwner || '-'}</div>
+              <div><strong>Stage:</strong> {report.currentStage || '-'}</div>
+              <div><strong>Current PICs:</strong> {(report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.PICs?.join(', ') || '-'}</div>
+              <div><strong>Issues:</strong> {(report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.issueDescription || '-'}</div>
+            </div>
+          )}
+        </div>
+    
+        {allRows.length > 0 && (
+          <div className="report-gantt" style={{ flex: 1 }}>
             <Chart
               chartType="Gantt"
               width={scaleWidths[scale]}
-              height="60px"
-              data={[columns, overallRow]}
+              height={`${Math.max(allRows.length * 30, 80)}px`}              data={[columns, ...allRows]}
               options={ganttOptions}
               loader={<div>Loading Gantt Chart...</div>}
             />
-          )}
-          {isExpanded && stageRows.length > 0 && (
-            <Chart
-              chartType="Gantt"
-              width={scaleWidths[scale]}
-              height={`${stageRows.length * 40 + 50}px`}
-              data={[columns, ...stageRows]}
-              options={ganttOptions}
-              loader={<div>Loading Stage Chart...</div>}
-            />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   })}
 </div>
     </div>
   );
-}
+}  
