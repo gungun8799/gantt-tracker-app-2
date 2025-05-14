@@ -67,6 +67,16 @@
     cursor: pointer;
   }
 
+  .btn-primary-submit-entry {
+    background-color: #00d06c;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
   .btn-primary-save {
     background-color: #00e604;
     color: white;

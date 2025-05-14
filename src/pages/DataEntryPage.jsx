@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
+const currentUserEmail = JSON.parse(localStorage.getItem('user'))?.email || 'unknown';
 
 const stageTemplate = [
   "Gather requirements with user",
@@ -376,7 +377,6 @@ export default function DataEntryPage() {
   const [businessOwnerList, setBusinessOwnerList] = useState([]);
   const [BOwnerOptions, setBOwnerOptions] = useState([]);
 
-
   const [stages, setStages] = useState(
     stageTemplate.map((name, index) => {
       const id = `STG0${index + 1}`;
@@ -501,7 +501,7 @@ export default function DataEntryPage() {
       currentStage,
       recentUpdate: new Date().toISOString(),
       changeLog: [{
-        changedBy: "panithan",
+        changedBy: currentUserEmail,
         changeDate: new Date().toISOString(),
         changeType: "Created",
         notes: "Submitted from DataEntryPage"
@@ -723,7 +723,7 @@ export default function DataEntryPage() {
         ))}
       </div>
 
-      <button className="btn-primary" onClick={handleSubmit}>💾 Submit Report</button>
+      <button className="btn-primary-submit-entry" onClick={handleSubmit}>💾 Submit Report</button>
     </div>
   );
 }
