@@ -9,6 +9,7 @@ export default function DrillPage() {
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [expandedCharts, setExpandedCharts] = useState({});
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     fetch(`${apiUrl}/api/get-reports`)
@@ -66,13 +67,26 @@ export default function DrillPage() {
   };
 
   const daysSinceUpdate = (timestamp) => {
+    if (!timestamp) return <span className="days-tag">No update</span>;
+  
     const last = new Date(timestamp);
+    if (isNaN(last)) return <span className="days-tag">Invalid date</span>;
+  
     const now = new Date();
-    const diff = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+    
+    // Convert both dates to YYYY-MM-DD format to strip time component
+    const dateOnly = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = Math.floor((dateOnly(now) - dateOnly(last)) / (1000 * 60 * 60 * 24));
+  
     let color = 'blue';
     if (diff >= 3 && diff <= 4) color = 'orange';
     if (diff >= 5) color = 'red';
-    return <span className={`days-tag ${color}`}>{diff} day{diff !== 1 ? 's' : ''} ago</span>;
+  
+    return (
+      <span className={`days-tag ${color}`}>
+        {diff} day{diff !== 1 ? 's' : ''} ago
+      </span>
+    );
   };
 
   const toggleChart = (reportId) => {
@@ -93,19 +107,54 @@ export default function DrillPage() {
 
         return (
           <div key={report.reportId} className="report-block">
-            <h2 className="section-title-2">
-              {report.reportName} ({report.reportId}) {' '}
-              {daysSinceUpdate(report.recentUpdate)}
-            </h2>
-            <div className="report-meta" style={{ marginBottom: '1rem' }}>
-              <strong>BU:</strong> {report.usedBy?.[0]?.buName || '-'} | {' '}
-              <strong>Owner:</strong> {report.businessOwners?.join(', ') || '-'} | {' '}
-              <strong>PICs:</strong> {stage?.PICs?.join(', ') || '-'} | {' '}
-              <strong>Issues:</strong> {stage?.issueDescription || '-'}
-            </div>
-            <button className="toggle-gantt-btn" onClick={() => toggleChart(report.reportId)}>
-              {chartExpanded ? '▲ Hide Timeline' : '▼ Show Timeline'}
-            </button>
+            <h2
+  className="section-title-2"
+  style={{ cursor: 'pointer' }}
+  onClick={() => toggleChart(report.reportId)}
+>
+  {report.reportName} ({report.reportId}) {' '}
+  {daysSinceUpdate(report.changeLog?.[0]?.changeDate)}
+</h2>
+
+{chartExpanded && (
+  <div className="report-meta-horizontal">
+    <div className="tag-group">
+      <span className="tag-label">BU:</span>
+      <span className="tag">{report.usedBy?.[0]?.buName || '-'}</span>
+    </div>
+    <div className="tag-group">
+      <span className="tag-label">Owner:</span>
+      {(report.businessOwners || ['-']).map((o, i) => (
+        <span key={i} className="tag">{o}</span>
+      ))}
+    </div>
+    <div className="tag-group">
+      <span className="tag-label">PICs:</span>
+      {(stage?.PICs || ['-']).map((p, i) => (
+        <span key={i} className="tag">{p}</span>
+      ))}
+    </div>
+    <div className="tag-group">
+      <span className="tag-label">Raw Files:</span>
+      {(report.rawFiles || ['-']).map((f, i) => (
+        <span
+        key={i}
+        className="tag clickable"
+        onClick={() => setSelectedFile(f)}
+      >
+        {f.fileName || f}
+      </span>
+      ))}
+    </div>
+    <div className="tag-group">
+      <span className="tag-label">Issues:</span>
+      <span className="tag">{stage?.issueDescription || '-'}</span>
+    </div>
+  </div>
+)}
+                <button className="toggle-gantt-btn" onClick={() => toggleChart(report.reportId)}>
+                {chartExpanded ? '▲ Hide Details;' : '▼ Show Details'}
+                </button>
             {chartExpanded && stageRows.length > 0 && (
               <Chart
                 chartType="Gantt"
@@ -135,6 +184,18 @@ export default function DrillPage() {
           </div>
         );
       })}
+
+{selectedFile && (
+  <div className="popup-overlay" onClick={() => setSelectedFile(null)}>
+    <div className="popup-content" onClick={e => e.stopPropagation()}>
+      <h3>📄 Raw File Info</h3>
+      <p><strong>File Name:</strong> {selectedFile.fileName}</p>
+      <p><strong>System Name:</strong> {selectedFile.systemName}</p>
+      <p><strong>System Owner:</strong> {selectedFile.systemOwner}</p>
+      <button onClick={() => setSelectedFile(null)} className="btn-secondary-clear">Close</button>
+    </div>
+  </div>
+)}
     </div>
   );
 }
