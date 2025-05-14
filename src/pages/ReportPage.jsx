@@ -23,9 +23,9 @@ export default function ReportPage() {
   }, []);
 
   const scaleWidths = {
-    Week: '1500px',
-    Month: '1000px',
-    Quarter: '800px'
+    Week: '920px',
+    Month: '920px',
+    Quarter: '920px'
   };
 
 
@@ -257,7 +257,7 @@ filtered.forEach((r) => {
   </div>
 
   {/* 🔸 Right: Summary Cards */}
-  <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', minWidth: '250px' }}>    <div className="summary-card-report">
+  <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', minWidth: '350px' }}>    <div className="summary-card-report">
       <h3>📋 Pending Reports by PIC</h3>
       <ul>
         {Object.entries(
