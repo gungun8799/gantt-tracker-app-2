@@ -105,8 +105,7 @@ function App() {
                 <Route path="/report" element={<ReportPage />} />
                 <Route path="/recent" element={<RecentUpdatesPage />} />
                 <Route path="/overall" element={<OverallPage />} />
-                <Route path="/drill/:stageName" element={<DrillPage />} />
-                <Route path="*" element={<Navigate to="/overall" />} />
+                <Route path="/drill/:stageName/:buName" element={<DrillPage />} />                <Route path="*" element={<Navigate to="/overall" />} />
               </>
             )}
           </Routes>

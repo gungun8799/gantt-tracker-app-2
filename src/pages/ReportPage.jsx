@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Chart } from 'react-google-charts';
 import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
@@ -7,6 +7,7 @@ export default function ReportPage() {
   const [reports, setReports] = useState([]);
   const [expandedReports, setExpandedReports] = useState({});
   const [scale, setScale] = useState('Month');
+  const [showOnlyDelayed, setShowOnlyDelayed] = useState(false);
   const [filters, setFilters] = useState({
     name: '',
     bu: [],
@@ -16,19 +17,60 @@ export default function ReportPage() {
   });
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(setReports)
       .catch(err => console.error('❌ Failed to fetch reports:', err));
   }, []);
 
+    if (!reports.length) return; // Wait until data is loaded
+
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // normalize
+  
+  const stageOrder = [
+    "Gather requirements with user",
+    "Select File sourcing option",
+    "Produce Data mapping script",
+    "Ingest to Azure & DEV",
+    "UAT on Azure",
+    "Data transformation for PBI",
+    "UAT on PBI",
+    "File sourcing automation",
+    "Done"
+  ];
+  
+  const delayedReports = [];
+  const delayedTasks = [];
+  
+
+  
+  console.log('[DEBUG] Delayed Report IDs:', delayedReports);
+  console.log('[DEBUG] Delayed Task Names:', delayedTasks);
   const scaleWidths = {
     Week: '920px',
     Month: '920px',
     Quarter: '920px'
   };
 
-
+  const getTodayLineRow = (reportId) => {
+    const today = new Date();
+    const start = new Date(today.setHours(0, 0, 0, 0));
+    const end = new Date(today.setHours(23, 59, 59, 999));
+  
+    return [
+      `${reportId}-today`,
+      '🔴 Today',
+      'Today',
+      start,
+      end,
+      null,
+      100,
+      null
+    ];
+  };
+  
 
   const columns = [
     { type: 'string', label: 'Task ID' },
@@ -60,17 +102,55 @@ reports.forEach((r) => {
   }
 });
 
-  const filtered = reports.filter(r => {
-    const currentStageName = r.currentStage;
-    const currentStage = r.usedBy?.[0]?.stages.find(s => s.stageName === currentStageName);
-  
-    const nameMatch = !filters.name || r.reportName.toLowerCase().includes(filters.name.toLowerCase());
-    const buMatch = !filters.bu.length || filters.bu.includes(r.usedBy?.[0]?.buName);    const stageMatch = !filters.stage.length || filters.stage.includes(currentStageName);
-const fileMatch = !filters.file.length || r.rawFiles?.some(f => filters.file.includes(f.fileName));
-const picMatch = !filters.pic.length || currentStage?.PICs?.some(p => filters.pic.includes(p));
-  
-    return nameMatch && buMatch && fileMatch && stageMatch && picMatch;
+
+
+
+
+
+const delayedReportIds = new Set();
+let delayedReportCount = 0;
+let delayedTaskCount = 0;
+
+reports.forEach(report => {
+  const stages = report.usedBy?.[0]?.stages || [];
+  let reportHasDelay = false;
+
+  stages.forEach(stage => {
+    const plannedEnd = stage.plannedEnd && new Date(stage.plannedEnd);
+    const actualEnd = stage.actualEnd && new Date(stage.actualEnd);
+
+    if (plannedEnd && plannedEnd < today && !actualEnd) {
+      delayedTaskCount++;
+      reportHasDelay = true;
+      console.log(`⚠️ Delayed Stage: ${stage.stageName} in report ${report.reportName}`);
+    }
   });
+
+  if (reportHasDelay) {
+    delayedReportIds.add(report.reportId);
+    delayedReportCount++;
+    console.log(`[⚠️ Delayed Report] ${report.reportName} (${report.reportId})`);
+  }
+});
+
+
+
+const filtered = reports.filter(r => {
+  if (showOnlyDelayed && !delayedReportIds.has(r.reportId)) return false;
+
+  const currentStageName = r.currentStage;
+  const currentStage = r.usedBy?.[0]?.stages.find(s => s.stageName === currentStageName);
+
+  const nameMatch = !filters.name || r.reportName.toLowerCase().includes(filters.name.toLowerCase());
+  const buMatch = !filters.bu.length || filters.bu.includes(r.usedBy?.[0]?.buName);
+  const stageMatch = !filters.stage.length || filters.stage.includes(currentStageName);
+  const fileMatch = !filters.file.length || r.rawFiles?.some(f => filters.file.includes(f.fileName));
+  const picMatch = !filters.pic.length || currentStage?.PICs?.some(p => filters.pic.includes(p));
+
+  return nameMatch && buMatch && fileMatch && stageMatch && picMatch;
+});
+
+
   const stagePipeline = {};
 const stageNames = [
   "Gather requirements with user",
@@ -83,6 +163,8 @@ const stageNames = [
   "File sourcing automation",
   "Done"
 ];
+
+
 
 stageNames.forEach(stage => {
   stagePipeline[stage] = 0;
@@ -99,20 +181,51 @@ filtered.forEach((r) => {
     setExpandedReports(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const getTimelinePaddingRows = () => [
+    [
+      'timeline-start',
+      '',
+      '__HIDDEN__',
+      new Date('2025-02-01'),
+      new Date('2025-02-02'), // minValue anchor
+      null,
+      0,
+      null
+    ],
+    [
+      'timeline-end',
+      '',
+      '__HIDDEN__',
+      new Date('2025-12-30'),
+      new Date('2025-12-31'), // maxValue anchor
+      null,
+      0,
+      null
+    ]
+  ];
+
+
+
   const ganttOptions = {
     gantt: {
       labelStyle: { fontName: 'Segoe UI', fontSize: 12, color: '#333' },
       trackHeight: 26,
-      criticalPathEnabled: false, // disables thick red lines
+      criticalPathEnabled: false,
       arrow: {
-        angle: 0,         // no head
-        width: 0,         // no width
-        color: '#ffffff', // invisible
-        radius: 0         // flat line
+        angle: 0,
+        width: 0,
+        color: '#ffffff',
+        radius: 0
       },
       palette: [
-        { color: '#1b9e77' },
-        { color: '#a8d5c0' }
+        { color: 'transparent', label: '__HIDDEN__' },
+        { color: '#185c97', label: 'Planned' },
+        { color: '#0870c9', label: 'Overall' },
+        { color: '#8ec0ea', label: 'Actual' },
+        { color: '#ffd54f', label: 'TODAY' },
+        { color: '#ffd54f', label: 'TODAY2' },
+         // 👈 NEW invisible resource
+
       ]
     },
     hAxis: {
@@ -121,9 +234,37 @@ filtered.forEach((r) => {
         Month: 'MMM yyyy',
         Quarter: "'Q'q yyyy"
       }[scale],
+      minValue: new Date('2025-02-01'),
+      maxValue: new Date('2025-12-31')
     }
   };
 
+
+  function ChartErrorBoundary({ children }) {
+    const [hasError, setHasError] = useState(false);
+  
+    return hasError ? (
+      <div style={{ color: 'red' }}>⚠️ Failed to render chart.</div>
+    ) : (
+      <ErrorCatcher onError={() => setHasError(true)}>{children}</ErrorCatcher>
+    );
+  }
+  
+  class ErrorCatcher extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { hasError: false };
+    }
+    static getDerivedStateFromError() {
+      return { hasError: true };
+    }
+    componentDidCatch(error, errorInfo) {
+      if (this.props.onError) this.props.onError(error, errorInfo);
+    }
+    render() {
+      return this.state.hasError ? null : this.props.children;
+    }
+  }
   const getOverallRow = (report) => {
     const stages = report.usedBy?.[0]?.stages || [];
   
@@ -204,6 +345,26 @@ filtered.forEach((r) => {
     return rows;
   };
 
+
+  const getTodayRow = () => {
+    const today = new Date();
+    const start = new Date(today.setHours(0, 0, 0, 0));
+    const end = new Date(today.setHours(23, 59, 59, 999));
+  
+    return [
+      'TODAY',
+      '',
+      'TODAY', // 👈 this string must match a palette label
+      start,
+      end,
+      null,
+      100,
+      null
+          // Extra column (tooltip override) — must be added if you're using tooltips manually
+
+    ];
+  };
+  console.log('Palette colors:', ganttOptions.gantt.palette.map(item => item.color));
   return (
     <div className="page-container">
       <h1>📈 Gantt Chart Report Summary</h1>
@@ -232,8 +393,9 @@ filtered.forEach((r) => {
       >
         ❌ Clear Filters
     </button>
-    </div>
     
+    </div>
+
 
     {["bu", "stage", "file", "pic"].map((key, i) => (
       <div className="filter-item" key={i}>
@@ -249,10 +411,12 @@ filtered.forEach((r) => {
         >
           <option value="">All</option>
           {unique(key).map(v => (
-            <option key={v}>{v}</option>
+            <option key={v} value={v}>{v}</option>
           ))}
         </select>
       </div>
+
+      
     ))}
 
     <div className="filter-item-full" style={{ textAlign: 'right' }}>
@@ -263,6 +427,7 @@ filtered.forEach((r) => {
 
   {/* 🔸 Right: Summary Cards */}
   <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', minWidth: '350px' }}>    <div className="summary-card-report">
+     
       <h3>📋 Pending Reports by PIC</h3>
       <ul>
         {Object.entries(
@@ -294,6 +459,28 @@ filtered.forEach((r) => {
         ))}
       </ul>
     </div>
+    <div
+  className={`summary-card-report-delayed ${showOnlyDelayed ? 'selected' : ''}`}
+
+  onClick={() => setShowOnlyDelayed(prev => !prev)}
+>
+  <h3 className="delayed-text">⏰ Delays</h3>
+
+  <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div>
+      <div style={{ fontSize: '2.2rem', color: showOnlyDelayed ? '#0870c9' : '#333' }}>
+        {delayedReportCount}
+      </div>
+      <div style={{ fontSize: '0.85rem', color: '#666' }}>Delayed Reports</div>
+    </div>
+    <div>
+      <div style={{ fontSize: '2.2rem', color: '#333' }}>
+        {delayedTaskCount}
+      </div>
+      <div style={{ fontSize: '0.85rem', color: '#666' }}>Delayed Tasks</div>
+    </div>
+  </div>
+</div>
   </div>
 </div>
 
@@ -304,7 +491,7 @@ filtered.forEach((r) => {
           
   
           <div className="summary-card-pipeline">
-            <h3>📊 Pipeline by Stage</h3>
+            <h3 className="pipeline-text" >📊 Pipeline by Stage</h3>
             <div className="stage-pipeline-grid">
               {stageNames.map(stage => (
                 <div
@@ -328,11 +515,24 @@ filtered.forEach((r) => {
       <div className="report-container">
   {filtered.map((report) => {
     const isExpanded = expandedReports[report.reportId];
+
+    
     const allRows = [
-      getOverallRow(report), 
-      ...(isExpanded ? getStageRows(report) : [])
+      ...getTimelinePaddingRows(),
+      getOverallRow(report),
+      ...(isExpanded ? getStageRows(report) : []),
+      getTodayRow()
     ].filter(Boolean);
 
+    for (const row of allRows.slice(1)) {
+      const resource = row[2];
+      const allowedResources = ganttOptions.gantt.palette.map(p => p.label);
+
+      if (resource && !allowedResources.includes(resource)) {
+        console.warn('⚠️ Unknown Resource:', resource);
+      }
+    }
+    console.log('🟡 Gantt rows:', allRows);
     return (
       <div key={report.reportId} className="report-row">
         <div
@@ -360,14 +560,30 @@ filtered.forEach((r) => {
         </div>
     
         {allRows.length > 0 && (
-          <div className="report-gantt" style={{ flex: 1 }}>
-            <Chart
-              chartType="Gantt"
-              width={scaleWidths[scale]}
-              height={`${Math.max(allRows.length * 30, 80)}px`}              data={[columns, ...allRows]}
-              options={ganttOptions}
-              loader={<div>Loading Gantt Chart...</div>}
-            />
+          <div
+            className="report-gantt"
+            style={{
+              flex: 1,
+              overflowX: 'auto',
+              overflowY: 'auto',
+              paddingBottom: '1rem',
+            }}
+          >
+            
+            <div style={{ minWidth: '1400px' /* or wider depending on scale */ }}>
+              
+              <Chart
+                chartType="Gantt"
+                width="100%"
+                height={
+                  isExpanded
+                    ? `${Math.max(allRows.length * 30, 80)}px`  // normal height when expanded
+                    : '60px'                                     // shorter height when collapsed
+                }                data={[columns, ...allRows]}
+                options={ganttOptions}
+                loader={<div>Loading Gantt Chart...</div>}
+              />
+            </div>
           </div>
         )}
       </div>

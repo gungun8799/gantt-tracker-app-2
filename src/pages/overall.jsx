@@ -30,7 +30,7 @@ export default function OverallPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(setReports)
       .catch(err => console.error('❌ Failed to fetch reports:', err));
@@ -73,8 +73,7 @@ export default function OverallPage() {
               <th key={idx}>
                 {/* ✅ Icon remains clickable */}
                 <button
-                  className="stage-icon"
-                  onClick={() => navigate(`/drill/${stage}`)}
+                  className="stage-icon" disable
                 >
                   {stageIcons[idx]}
                 </button>
@@ -104,7 +103,7 @@ export default function OverallPage() {
                   <td
                     key={sidx}
                     className={count === 0 ? 'done' : 'clickable-cell'}
-                    onClick={() => navigate(`/drill/${stage}`)}
+                    onClick={() => navigate(`/drill/${encodeURIComponent(stage)}/${encodeURIComponent(bu)}`)}
                     title={`Drill into ${stage}`}
                   >
                     {count}

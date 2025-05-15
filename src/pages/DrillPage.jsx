@@ -5,21 +5,83 @@ import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
 
 export default function DrillPage() {
-  const { stageName } = useParams();
+  const { stageName, buName } = useParams();  
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [expandedCharts, setExpandedCharts] = useState({});
   const [selectedFile, setSelectedFile] = useState(null);
+  const [showOnlyDelayed, setShowOnlyDelayed] = useState(false);
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    const normalize = str => str?.trim().toLowerCase();
+  
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(data => {
-        const filtered = data.filter(r => r.currentStage === stageName);
+        console.log('📦 fetched', data.length, 'reports');
+        console.log('🔍 filtering by stageName:', stageName);
+  
+        data.forEach(r => {
+          console.log(`[📄] ${r.reportName}: currentStage="${r.currentStage}"`);
+        });
+  
+        const filtered = data.filter(
+          r =>
+            normalize(r.currentStage) === normalize(stageName) &&
+            normalize(r.usedBy?.[0]?.buName) === normalize(buName)
+        );
+
+
+        // 🔍 Calculate delayed report/tasks for this filtered list
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+let delayedReportCount = 0;
+let delayedTaskCount = 0;
+const delayedReportIds = [];
+
+filtered.forEach(report => {
+  let hasDelayed = false;
+
+  (report.usedBy?.[0]?.stages || []).forEach(stage => {
+    const plannedEnd = stage.plannedEnd && new Date(stage.plannedEnd);
+    const isCurrentStage = stage.stageName === report.currentStage;
+
+    if (plannedEnd && plannedEnd < today && !stage.actualEnd && isCurrentStage) {
+      delayedTaskCount++;
+      hasDelayed = true;
+    }
+  });
+
+  if (hasDelayed) {
+    delayedReportCount++;
+    delayedReportIds.push(report.reportId);
+  }
+});
+
+setReports(
+  showOnlyDelayed
+    ? filtered.filter(r => delayedReportIds.includes(r.reportId))
+    : filtered
+);
+
+
+
+  
+        console.log('✅ matched reports:', filtered.map(r => r.reportName));
         setReports(filtered);
+
+        console.log('🔍 stageName from URL:', stageName);
+data.forEach(r => {
+  console.log(`[📄] ${r.reportName}: currentStage="${r.currentStage}"`);
+});
       })
       .catch(err => console.error('❌ Failed to fetch reports:', err));
+      
   }, [stageName]);
+
+
+
 
   const columns = [
     { type: 'string', label: 'Task ID' },
@@ -93,6 +155,46 @@ export default function DrillPage() {
     setExpandedCharts(prev => ({ ...prev, [reportId]: !prev[reportId] }));
   };
 
+  const getTodayRow = () => {
+    const today = new Date();
+    const start = new Date(today.setHours(0, 0, 0, 0));
+    const end = new Date(today.setHours(23, 59, 59, 999));
+    return [
+      'TODAY',
+      '',
+      'TODAY',
+      start,
+      end,
+      null,
+      100,
+      null
+    ];
+  };
+
+  const getTimelinePaddingRows = () => [
+    [
+      'timeline-start',
+      '',
+      '__HIDDEN__',
+      new Date('2025-02-01'),
+      new Date('2025-02-02'), // min anchor
+      null,
+      0,
+      null
+    ],
+    [
+      'timeline-end',
+      '',
+      '__HIDDEN__',
+      new Date('2025-12-30'),
+      new Date('2025-12-31'), // max anchor
+      null,
+      0,
+      null
+    ]
+  ];
+
+
   return (
     <div className="page-container">
       <h1>📊 Drill Down: {stageName}</h1>
@@ -104,7 +206,8 @@ export default function DrillPage() {
         const stage = report.usedBy?.[0]?.stages?.find(s => s.stageName === stageName);
         const stageRows = getStageRows(report);
         const chartExpanded = expandedCharts[report.reportId] || false;
-
+        const rowCount = stageRows.length + 3; // +2 padding rows +1 today row
+        const chartHeight = `${rowCount * 40}px`;
         return (
           <div key={report.reportId} className="report-block">
             <h2
@@ -152,31 +255,41 @@ export default function DrillPage() {
     </div>
   </div>
 )}
+
+
+
                 <button className="toggle-gantt-btn" onClick={() => toggleChart(report.reportId)}>
                 {chartExpanded ? '▲ Hide Details;' : '▼ Show Details'}
                 </button>
             {chartExpanded && stageRows.length > 0 && (
+              
               <Chart
                 chartType="Gantt"
                 width="100%"
-                height={`${stageRows.length * 45 + 50}px`}
-                data={[columns, ...stageRows]}
+                height={chartHeight}
+                data={[columns, ...getTimelinePaddingRows(), ...stageRows, getTodayRow()]}                
                 options={{
-                    gantt: {
-                        labelStyle: { fontName: 'Segoe UI', fontSize: 12, color: '#333' },
-                        trackHeight: 28,
-                        criticalPathEnabled: false, // disables thick red lines
-                        arrow: {
-                          angle: 0,         // no head
-                          width: 0,         // no width
-                          color: '#ffffff', // invisible
-                          radius: 0         // flat line
-                        },
-                        palette: [
-                          { color: '#1b9e77' },
-                          { color: '#a8d5c0' }
-                        ]
-                      }
+                  gantt: {
+                    labelStyle: { fontName: 'Segoe UI', fontSize: 12, color: '#333' },
+                    trackHeight: 28,
+                    criticalPathEnabled: false,
+                    arrow: {
+                      angle: 0,
+                      width: 0,
+                      color: '#ffffff',
+                      radius: 0
+                    },
+                    palette: [
+                      { color: 'transparent', label: '__HIDDEN__' },
+                      { color: '#1b9e77' },  // Planned
+                      { color: '#a8d5c0' },  // Actual
+                      { color: '#ffd54f', label: 'TODAY' }
+                    ]
+                  },
+                  hAxis: {
+                    minValue: new Date('2025-02-01'),
+                    maxValue: new Date('2025-12-31'),
+                  }
                 }}
                 loader={<div>Loading chart...</div>}
               />
