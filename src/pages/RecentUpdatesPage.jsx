@@ -9,7 +9,7 @@ export default function RecentUpdatesPage() {
   const [onlyTimeChanges, setOnlyTimeChanges] = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         const grouped = {};
@@ -86,7 +86,8 @@ export default function RecentUpdatesPage() {
                 {expandedReports[reportId] && report.logs.map((log, i) => (
                   <tr key={i} className="collapsible-log">
                     <td colSpan="2" style={{ paddingLeft: '2rem' }}>
-                      <strong>{log.changeDate && new Date(log.changeDate).toLocaleString()}</strong> — <em>{log.changeType}</em><br />
+                      <strong>{log.changeDate && new Date(log.changeDate).toLocaleString()}</strong> — 
+                      <em> {log.changeType}</em> <span style={{ color: '#999' }}>by {log.changedBy || 'Unknown'}</span><br />
                       {log.notes}
                     </td>
                   </tr>

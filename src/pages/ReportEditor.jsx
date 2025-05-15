@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
+const currentUserEmail = JSON.parse(localStorage.getItem('user'))?.email || 'unknown';
+
 
 export default function DashboardPage() {
   const [reports, setReports] = useState([]);
@@ -27,7 +29,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
   };
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         setReports(data);
@@ -40,7 +42,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 
   const deleteReport = async (reportId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/delete-report`, {
+      const res = await fetch(`${apiUrl}/api/delete-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId }),
@@ -154,12 +156,15 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
     const updated = [...filteredReports];
     const stage = updated[reportIdx].usedBy[0].stages[stageIdx];
 
-    if ((field === 'actualStart' || field === 'actualEnd') && stage[field] !== value) {
+    if (
+      (field === 'actualStart' || field === 'actualEnd' || field === 'issueDescription') &&
+      stage[field] !== value
+    ) {
       updated[reportIdx].changeLog.push({
-        changedBy: "PM",
+        changedBy: currentUserEmail,
         changeDate: new Date().toISOString(),
         changeType: "Update",
-        notes: `Changed ${field} from ${stage[field] || "empty"} to ${value}`
+        notes: `Changed ${field} from "${stage[field] || 'empty'}" to "${value}"`
       });
     }
 
@@ -173,7 +178,7 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 
     if (report.currentStage !== newStageName) {
       report.changeLog.push({
-        changedBy: "PM",
+        changedBy: currentUserEmail,
         changeDate: new Date().toISOString(),
         changeType: "Stage Update",
         notes: `Changed current stage from "${report.currentStage || "N/A"}" to "${newStageName}"`
@@ -186,19 +191,48 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
 
   const saveReport = async (report) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/update-report`, {
+      const original = reports.find(r => r.reportId === report.reportId);
+      const updatedStages = report?.usedBy[0]?.stages || [];
+      const originalStages = original?.usedBy[0]?.stages || [];
+      const diffs = [];
+  
+      updatedStages.forEach((stage, idx) => {
+        const oldStage = originalStages[idx];
+        if (!oldStage) return;
+  
+        ['actualStart', 'actualEnd', 'issueDescription'].forEach(field => {
+          const oldVal = oldStage[field] || '';
+          const newVal = stage[field] || '';
+          if (oldVal !== newVal) {
+            diffs.push(`🟡 ${stage.stageName} → ${field}: "${oldVal}" ➜ "${newVal}"`);
+          }
+        });
+      });
+  
+      if (diffs.length > 0) {
+        report.changeLog = report.changeLog || [];
+        report.changeLog.push({
+          changedBy: currentUserEmail,
+          changeDate: new Date().toISOString(),
+          changeType: 'Update',
+          notes: diffs.join('\n')
+        });
+      }
+  
+      const res = await fetch(`${apiUrl}/api/update-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
       });
+  
       const result = await res.json();
       if (res.ok) {
-        alert("✅ Report updated.");
+        alert('✅ Report updated.');
       } else {
-        alert("❌ Save failed: " + result.error);
+        alert('❌ Save failed: ' + result.error);
       }
     } catch (err) {
-      console.error("❌ Error saving:", err);
+      console.error('❌ Error saving:', err);
     }
   };
 
@@ -496,17 +530,22 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
       </label>
     </div>
 
-    <div className="save-stage-btn-wrapper">
-      <button className="btn-save-stage" onClick={() => saveReport(report)}>
-        💾 Save This Stage
-      </button>
-    </div>
+{/* 
+<div className="save-stage-btn-wrapper">
+  <button className="btn-save-stage" onClick={() => saveReport(report)}>
+    💾 Save This Stage
+  </button>
+</div>
+*/}
   </>
 )}
     </div>
   );
 })}
 
+{isReportOpen && (
+  <>
+<div className="save-report-sticky-bar">
                 <button
                   className="btn-primary-save"
                   style={{ marginTop: '1rem' }}
@@ -516,12 +555,15 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
                 </button>
 
                 <button
-  className="btn-danger-delete"
-  style={{ marginLeft: '1rem' }}
-  onClick={() => setReportToDelete(report)}
->
-  🗑 Delete Report
-</button>
+          className="btn-danger-delete"
+          style={{ marginLeft: '1rem' }}
+          onClick={() => setReportToDelete(report)}
+        >
+          🗑 Delete Report
+        </button>
+</div>
+</>
+)}
               </>
             )}
           </div>

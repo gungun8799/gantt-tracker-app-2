@@ -397,10 +397,10 @@ export default function DataEntryPage() {
   );
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/rawfile-options`).then(res => res.json()).then(setRawFileOptions);
-    fetch(`http://localhost:4000/api/bowner-options`).then(res => res.json()).then(setBOwnerOptions);
-    fetch(`http://localhost:4000/api/system-names`).then(res => res.json()).then(setSystemNames);
-    fetch(`http://localhost:4000/api/system-owners`).then(res => res.json()).then(setSystemOwners);
+    fetch(`${apiUrl}/api/rawfile-options`).then(res => res.json()).then(setRawFileOptions);
+    fetch(`${apiUrl}/api/bowner-options`).then(res => res.json()).then(setBOwnerOptions);
+    fetch(`${apiUrl}/api/system-names`).then(res => res.json()).then(setSystemNames);
+    fetch(`${apiUrl}/api/system-owners`).then(res => res.json()).then(setSystemOwners);
   }, []);
 
   
@@ -424,21 +424,21 @@ export default function DataEntryPage() {
     }
     if (!rawFileOptions.includes(selectedRawFile)) {
       setRawFileOptions(prev => [...prev, selectedRawFile]);
-      fetch(`http://localhost:4000/api/save-rawfile-option`, {
+      fetch(`${apiUrl}/api/save-rawfile-option`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: selectedRawFile })
       });
     }
     if (!systemNames.includes(systemName)) {
       setSystemNames(prev => [...prev, systemName]);
-      fetch(`http://localhost:4000/api/save-system-name`, {
+      fetch(`${apiUrl}/api/save-system-name`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: systemName })
       });
     }
     if (!systemOwners.includes(systemOwner)) {
       setSystemOwners(prev => [...prev, systemOwner]);
-      fetch(`http://localhost:4000/api/save-system-owner`, {
+      fetch(`${apiUrl}/api/save-system-owner`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: systemOwner })
       });
@@ -449,7 +449,7 @@ export default function DataEntryPage() {
     if (selectedBOwner) {
       if (!BOwnerOptions.includes(selectedBOwner)) {
         setBOwnerOptions(prev => [...prev, selectedBOwner]);
-        fetch(`http://localhost:4000/api/save-bowner-option`, {
+        fetch(`${apiUrl}/api/save-bowner-option`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: selectedBOwner })
         });
@@ -487,7 +487,27 @@ export default function DataEntryPage() {
     setStages(updated);
   };
 
+  const getMissingFields = () => {
+    const missing = [];
+  
+    if (!reportId.trim()) missing.push('Report ID');
+    if (!reportName.trim()) missing.push('Report Name');
+    if (!currentStage) missing.push('Current Stage');
+    if (buList.length === 0) missing.push('Business Unit(s)');
+    if (!priority) missing.push('Priority');
+    if (rawFiles.length === 0) missing.push('Raw File(s)');
+    if (businessOwnerList.length === 0) missing.push('Business Owner(s)');
+  
+    return missing;
+  };
   const handleSubmit = async () => {
+    const missingFields = getMissingFields();
+
+    if (missingFields.length > 0) {
+      alert(`❌ Please fill in the following required field(s):\n- ${missingFields.join('\n- ')}`);
+      return;
+    }
+  
     const usedBy = buList.map(buName => ({
       buId: buName,
       buName,
@@ -514,7 +534,7 @@ export default function DataEntryPage() {
 
     try {
         
-        const res = await fetch(`http://localhost:4000/api/save-report`, {        method: 'POST',
+        const res = await fetch(`${apiUrl}/api/save-report`, {        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
       });
@@ -533,6 +553,7 @@ export default function DataEntryPage() {
   };
 
   return (
+  <div className="data-entry-wrapper">
     <div className="page-container">
       <h1>📋 Enter Report Details</h1>
 
@@ -723,7 +744,18 @@ export default function DataEntryPage() {
         ))}
       </div>
 
-      <button className="btn-primary-submit-entry" onClick={handleSubmit}>💾 Submit Report</button>
+    
+  <div className="page-container scrollable-form">
+    {/* All your form sections like Report Info, BU, etc. */}
+    ...
+  </div>
+
+  <div className="sticky-footer">
+        <button className="btn-primary-submit-entry" onClick={handleSubmit}>
+        💾 Submit Report
+      </button>
+    </div>
+  </div>        
     </div>
   );
 }

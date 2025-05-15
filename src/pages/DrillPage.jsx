@@ -11,11 +11,15 @@ export default function DrillPage() {
   const [expandedCharts, setExpandedCharts] = useState({});
   const [selectedFile, setSelectedFile] = useState(null);
   const [showOnlyDelayed, setShowOnlyDelayed] = useState(false);
+  const [delayedReportCount, setDelayedReportCount] = useState(0);
+  const [delayedTaskCount, setDelayedTaskCount] = useState(0);
+
+  
 
   useEffect(() => {
     const normalize = str => str?.trim().toLowerCase();
   
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         console.log('📦 fetched', data.length, 'reports');
@@ -59,6 +63,9 @@ filtered.forEach(report => {
   }
 });
 
+setDelayedReportCount(delayedReportCount);
+setDelayedTaskCount(delayedTaskCount);
+
 setReports(
   showOnlyDelayed
     ? filtered.filter(r => delayedReportIds.includes(r.reportId))
@@ -78,7 +85,7 @@ data.forEach(r => {
       })
       .catch(err => console.error('❌ Failed to fetch reports:', err));
       
-  }, [stageName]);
+  }, [stageName, buName, showOnlyDelayed]);
 
 
 
@@ -201,6 +208,26 @@ data.forEach(r => {
       <button className="btn-back" onClick={() => navigate('/overall')}>
         ← Back to Overall
       </button>
+      <div
+  className={`summary-card-report-delayed-horizontal ${showOnlyDelayed ? 'selected' : ''}`}
+  onClick={() => setShowOnlyDelayed(prev => !prev)}
+>
+  <h3 style={{ fontSize: '1rem', marginRight: '2rem' }}>⏰ Delays</h3>
+  <div style={{ display: 'flex', gap: '3rem' }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: '2rem', fontWeight: 600, color: '#0870c9' }}>
+        {delayedReportCount}
+      </div>
+      <div style={{ fontSize: '0.85rem' }}>Delayed Reports</div>
+    </div>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: '2rem', fontWeight: 600, color: '#0870c9' }}>
+        {delayedTaskCount}
+      </div>
+      <div style={{ fontSize: '0.85rem' }}>Delayed Tasks</div>
+    </div>
+  </div>
+</div>
 
       {reports.map((report) => {
         const stage = report.usedBy?.[0]?.stages?.find(s => s.stageName === stageName);
@@ -263,6 +290,7 @@ data.forEach(r => {
                 </button>
             {chartExpanded && stageRows.length > 0 && (
               
+
               <Chart
                 chartType="Gantt"
                 width="100%"
@@ -295,6 +323,8 @@ data.forEach(r => {
               />
             )}
           </div>
+
+          
         );
       })}
 
@@ -309,6 +339,8 @@ data.forEach(r => {
     </div>
   </div>
 )}
+
+
     </div>
   );
 }
