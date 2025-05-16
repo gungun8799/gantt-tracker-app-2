@@ -15,6 +15,8 @@ export default function ReportPage() {
     file: [],
     pic: []
   });
+  const [searchMatchedReports, setSearchMatchedReports] = useState([]);
+const [selectedReports, setSelectedReports] = useState([]);
 
   useEffect(() => {
     fetch(`${apiUrl}/api/get-reports`)
@@ -67,7 +69,8 @@ export default function ReportPage() {
       end,
       null,
       100,
-      null
+      null,
+      'Today' // ✅ tooltip
     ];
   };
   
@@ -80,7 +83,8 @@ export default function ReportPage() {
     { type: 'date', label: 'End Date' },
     { type: 'number', label: 'Duration' },
     { type: 'number', label: 'Percent Complete' },
-    { type: 'string', label: 'Dependencies' }
+    { type: 'string', label: 'Dependencies' },
+    { type: 'string', role: 'tooltip', p: { html: true } } // ✅ Add this line
   ];
 
   const unique = (key) => {
@@ -138,10 +142,16 @@ reports.forEach(report => {
 const filtered = reports.filter(r => {
   if (showOnlyDelayed && !delayedReportIds.has(r.reportId)) return false;
 
+  // ✅ If any reports are manually selected, show only those — ignore text search
+  if (selectedReports.length > 0) {
+    const selectedIds = selectedReports.map(rep => rep.reportId);
+    return selectedIds.includes(r.reportId);
+  }
+
   const currentStageName = r.currentStage;
   const currentStage = r.usedBy?.[0]?.stages.find(s => s.stageName === currentStageName);
 
-  const nameMatch = !filters.name || r.reportName.toLowerCase().includes(filters.name.toLowerCase());
+  const nameMatch = !filters.name || r.reportName.toLowerCase().includes(filters.name.toLowerCase()) || r.reportId.toLowerCase().includes(filters.name.toLowerCase());
   const buMatch = !filters.bu.length || filters.bu.includes(r.usedBy?.[0]?.buName);
   const stageMatch = !filters.stage.length || filters.stage.includes(currentStageName);
   const fileMatch = !filters.file.length || r.rawFiles?.some(f => filters.file.includes(f.fileName));
@@ -187,20 +197,22 @@ filtered.forEach((r) => {
       '',
       '__HIDDEN__',
       new Date('2025-02-01'),
-      new Date('2025-02-02'), // minValue anchor
+      new Date('2025-02-02'),
       null,
       0,
-      null
+      null,
+      '' // ✅ tooltip
     ],
     [
       'timeline-end',
       '',
       '__HIDDEN__',
       new Date('2025-12-30'),
-      new Date('2025-12-31'), // maxValue anchor
+      new Date('2025-12-31'),
       null,
       0,
-      null
+      null,
+      '' // ✅ tooltip
     ]
   ];
 
@@ -295,14 +307,20 @@ filtered.forEach((r) => {
       maxEnd,
       null,
       0,
-      null
+      null,
+      'Today' // ✅ tooltip
     ];
   };
 
   const getStageRows = (report) => {
     const rows = [];
     const stagesMap = {};
-  
+    const formatDate = (d) =>
+    new Date(d).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
     (report.usedBy?.[0]?.stages || []).forEach(s => {
       stagesMap[s.stageName] = s;
     });
@@ -316,13 +334,14 @@ filtered.forEach((r) => {
       if (s.plannedStart && s.plannedEnd) {
         rows.push([
           `${baseId}`,
-          `${stageName.padEnd(40, ' ')}`, // 👈 fixed label width
+          '', // 👈 fixed label width
           'Planned',
           new Date(s.plannedStart),
           new Date(s.plannedEnd),
           null,
           0,
-          `${report.reportId}-overall`
+          `${report.reportId}-overall`,
+          `<b>${stageName}</b><br>Start: ${formatDate(s.plannedStart)}<br>End: ${formatDate(s.plannedEnd)}`
         ]);
       }
   
@@ -331,13 +350,14 @@ filtered.forEach((r) => {
         const actualId = `${baseId}-actual`;
         rows.push([
           actualId,
-          `${stageName} (Actual)`,
+          ``,
           'Actual',
           new Date(s.actualStart),
           new Date(s.actualEnd),
           null,
           0,
-          `${report.reportId}-overall` // 👈 Add dependency to overall row
+          `${report.reportId}-overall`, // 👈 Add dependency to overall row
+          `<b>${stageName} (Actual)</b><br>Start: ${formatDate(s.actualStart)}<br>End: ${formatDate(s.actualEnd)}`
         ]);
       }
     });
@@ -359,7 +379,8 @@ filtered.forEach((r) => {
       end,
       null,
       100,
-      null
+      null,
+      'Today' // ✅ tooltip
           // Extra column (tooltip override) — must be added if you're using tooltips manually
 
     ];
@@ -371,27 +392,160 @@ filtered.forEach((r) => {
   
       {/* 🔼 Filters and Summary Section */}
       <div className="section-block-filter-merged">
-        <div className="section-title">🎯 Filters & Summary</div>
-        <div className="filter-summary-row" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+      <div
+  className="section-title-summary-report"
+  style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '1rem',
+    flexWrap: 'wrap',
+  }}
+>
+  <span>🎯 Filters & Summary</span>
+
+  <button
+    className="btn-secondary-clear"
+    onClick={() => {
+      setFilters({ name: '', bu: [], stage: [], file: [], pic: [] });
+      setSearchMatchedReports([]);
+      setSelectedReports([]);
+    }}
+    style={{ marginTop: 0 }} // remove previous spacing if any
+  >
+    ❌ Clear Filters
+  </button>
+</div>        
+
+<div className="filter-summary-row" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
   {/* 🔹 Left: Filter Fields */}
   
   <div className="filter-grid" style={{ flex: '1' }}>
     <div className="filter-item-full">
 
-      <label htmlFor="reportNameInput" className="filter-label">Search Report Name</label>
-      <input
-        id="reportNameInput"
-        className="filter-input"
-        type="text"
-        placeholder="e.g. Report name"
-        value={filters.name}
-        onChange={e => setFilters({ ...filters, name: e.target.value })}
-      />
-          <button
-        className="btn-secondary-clear"
-        onClick={() => setFilters({ name: '', bu: [], stage: [], file: [], pic: [] })}
+    <div
+  style={{
+    display: 'flex',
+    gap: '0.1rem',
+    alignItems: 'flex-start',
+    marginBottom: '0.1rem',
+    flexWrap: 'wrap',
+  }}
+>
+  {/* LEFT: Search field */}
+  <div style={{ flex: '1 1 100px' }}>
+    <label className="filter-label">Search Report Name or ID</label>
+    <input
+  list="reportOptions"
+  className="filter-input"
+  type="text"
+  placeholder="Type to search reports..."
+  value={filters.name}
+  onChange={e => {
+    const value = e.target.value;
+    setFilters(prev => ({ ...prev, name: value }));
+
+    // Try to auto-add if exact match on blur or enter (optional)
+    const matched = reports.find(r =>
+      `${r.reportName} (${r.reportId})`.toLowerCase() === value.toLowerCase()
+    );
+    if (matched && !selectedReports.some(r => r.reportId === matched.reportId)) {
+      setSelectedReports(prev => [...prev, matched]);
+      setFilters(prev => ({ ...prev, name: '' }));
+    }
+  }}
+  onKeyDown={e => {
+    if (e.key === 'Enter') {
+      const matched = reports.find(r =>
+        `${r.reportName} (${r.reportId})`.toLowerCase() === filters.name.toLowerCase()
+      );
+      if (matched && !selectedReports.some(r => r.reportId === matched.reportId)) {
+        setSelectedReports(prev => [...prev, matched]);
+        setFilters(prev => ({ ...prev, name: '' }));
+      }
+    }
+  }}
+/>
+
+<datalist id="reportOptions">
+  {reports.map(r => (
+    <option key={r.reportId} value={`${r.reportName} (${r.reportId})`} />
+  ))}
+</datalist>
+  </div>
+
+  {/* RIGHT: Dropdown + tags */}
+  <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+   
+
+    {selectedReports.length > 0 && (
+      <div>
+        <label className="filter-label" style={{ display: 'flex', alignItems: 'center' }}></label>
+        <div
+  style={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.5rem',
+  }}
+>
+  {selectedReports.map(r => (
+    <div
+      key={r.reportId}
+      className="selected-report-tag"
+      style={{
+        background: '#e0e0e0',
+        padding: '4px 8px',
+        borderRadius: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        width: 'calc(33.333% - 0.5rem)', // ✅ 3 per row
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}
+    >
+      <button
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: 'red',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          marginRight: '0.5rem',
+          padding: 0,
+        }}
+        onClick={() =>
+          setSelectedReports(prev =>
+            prev.filter(x => x.reportId !== r.reportId)
+          )
+        }
       >
-        ❌ Clear Filters
+        ❌
+      </button>
+
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {r.reportName} ({r.reportId})
+      </span>
+    </div>
+  ))}
+</div>
+      </div>
+    )}
+  </div>
+</div>
+
+
+
+
+    <button
+      className="btn-secondary-clear"
+      onClick={() => {
+        setFilters({ name: '', bu: [], stage: [], file: [], pic: [] });
+        setSearchMatchedReports([]);
+        setSelectedReports([]);
+      }}
+    >
+      
     </button>
     
     </div>
@@ -580,8 +734,14 @@ filtered.forEach((r) => {
                     ? `${Math.max(allRows.length * 30, 80)}px`  // normal height when expanded
                     : '60px'                                     // shorter height when collapsed
                 }                data={[columns, ...allRows]}
-                options={ganttOptions}
-                loader={<div>Loading Gantt Chart...</div>}
+                options={{
+                  ...ganttOptions,
+                  tooltip: {
+                    isHtml: true,
+                    trigger: 'selection' // ✅ force use of your custom tooltip
+                  }
+                }}              
+                 loader={<div>Loading Gantt Chart...</div>}
               />
             </div>
           </div>

@@ -23,6 +23,16 @@
   .section-title {
     font-size: 1.25rem;
     font-weight: bold;
+    width:100%;
+    margin-bottom: 1rem;
+    color: #0072CE;
+    background-color: #ffffff;
+  }
+
+  .section-title-summary-report {
+    font-size: 1.25rem;
+    font-weight: bold;
+    width:25%;
     margin-bottom: 1rem;
     color: #0072CE;
     background-color: #ffffff;
@@ -63,6 +73,18 @@
     padding: 0.5rem 1rem;
     border-radius: 6px;
     border: none;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .btn-primary-query {
+    background-color: #0072CE;
+    margin-top:-10px;
+    color: white;
+    padding: 0.5rem 0.5rem;
+    border-radius: 6px;
+    border: none;
+    height: 40px;
     font-weight: bold;
     cursor: pointer;
   }
@@ -337,6 +359,16 @@
     border: none;
     padding: 0.5rem 1rem;
     cursor: pointer;
+  }
+
+
+  .btn-secondary-clear-2 {
+    background-color: white;
+    color: black;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+
   }
 
   .btn-secondary-clear {
@@ -894,8 +926,8 @@
   display: flex;
   flex-direction: row;         /* ⬅️ Changed from column */
   align-items: center;         /* Align items vertically */
-  gap: 1rem;                   /* Add spacing between items */
-  flex-wrap: wrap;             /* Optional: allows wrapping on small screens */
+  gap: 0.2rem;                   /* Add spacing between items */
+  flex-wrap: wrap;  
 }
 
 .filter-label {
@@ -910,6 +942,14 @@
   border-radius: 6px;
   font-size: 0.95rem;
   width: 11vw;
+}
+
+.filter-select-reports-2 {
+  padding: 0.5rem;
+  border: 1px solid #cacaca;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  width: 2vw;
 }
 
 .top-section-grid {
@@ -1195,6 +1235,14 @@
   gap: 1rem;
   border-top: 1px solid #ddd;
   z-index: 999;
+}
+
+
+.selected-report-tag {
+  background: #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 11px;
 }
 
 @keyframes spin {

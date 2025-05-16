@@ -348,15 +348,15 @@ const rawFileOptions = [
 
 
 const PIC_OPTIONS_PER_STAGE = {
-  STG01: ["Ball", "James"],
-  STG02: ["Yoong", "James","Jack", "Josh"],
-  STG03: ["Aom (Axon)", "Yoong"],
+  STG01: ["Ball", "James", "Kade", "Phen"],
+  STG02: ["Yoong", "James","Jack", "Josh", "Others"],
+  STG03: ["Aom (Axon)", "Yoong", "Josh", "Jack"],
   STG04: ["Aom (Axon)", "Yoong"],
-  STG05: ["Biz Owner"],
-  STG06: ["Jack", "Kamrai"],
-  STG07: ["Suchawadee", "Ketsara", "Nipawan","Sirirporn(Thak)"],
-  STG08: ["Parama (Si)"],
-  STG09: ["Hooray!"]
+  STG05: ["Biz Owner", "James"],
+  STG06: ["Biz Owner", "James", "Aom (Axon)"],
+  STG07: ["Biz Owner"],
+  STG08: ["Parama (Si)", "Aom (Axon)"],
+  STG09: ["Done"]
 };
 
 export default function DataEntryPage() {

@@ -11,7 +11,7 @@ export default function DashboardPage() {
   const [reportNameQuery, setReportNameQuery] = useState('');
   const [selectedBUs, setSelectedBUs] = useState([]);
   const [selectedStage, setSelectedStage] = useState([]);  const [selectedFiles, setSelectedFiles] = useState([]);
-
+  const [selectedReportIds, setSelectedReportIds] = useState([]);
   const [openStages, setOpenStages] = useState({});
   const [openReports, setOpenReports] = useState({});
   const [reportToDelete, setReportToDelete] = useState(null);
@@ -19,7 +19,10 @@ export default function DashboardPage() {
   const [editingStageIdx, setEditingStageIdx] = useState(null);
   const [newStageName, setNewStageName] = useState('');
   const [businessOwner, setBusinessOwner] = useState('');
-const [businessOwnerList, setBusinessOwnerList] = useState([]);
+  const [searchMatchedReports, setSearchMatchedReports] = useState([]);
+  const [selectedReports, setSelectedReports] = useState([]); // full report objects
+
+  const [businessOwnerList, setBusinessOwnerList] = useState([]);
   const toggleReport = (reportId) => {
     setOpenReports(prev => ({ ...prev, [reportId]: !prev[reportId] }));
   };
@@ -115,11 +118,31 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
   const handleQuery = () => {
     let filtered = [...reports];
 
-    if (reportNameQuery.trim()) {
-      filtered = filtered.filter(r =>
-        r.reportName.toLowerCase().includes(reportNameQuery.toLowerCase())
-      );
+    if (selectedReportIds.length) {
+      filtered = filtered.filter(r => selectedReportIds.includes(r.reportId));
     }
+
+    {reportNameQuery.trim() && (
+      <div style={{ marginBottom: '1rem' }}>
+        <label className="label-filter">Select Specific Reports</label>
+        <select
+          multiple
+          className="select"
+          value={selectedReportIds}
+          onChange={e => {
+            const options = Array.from(e.target.selectedOptions, opt => opt.value);
+            setSelectedReportIds(options);
+          }}
+          style={{ width: '100%' }}
+        >
+          {searchMatchedReports.map(r => (
+            <option key={r.reportId} value={r.reportId}>
+              {r.reportName} ({r.reportId})
+            </option>
+          ))}
+        </select>
+      </div>
+    )}
 
     if (selectedBUs.length) {
       filtered = filtered.filter(r => selectedBUs.includes(r.usedBy[0]?.buName));
@@ -147,6 +170,11 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
         const stage = r.usedBy?.[0]?.stages.find(s => s.stageName === currentStage);
         return stage?.PICs?.some(p => selectedPIC.includes(p));
       });
+    }
+
+    if (selectedReports.length > 0) {
+      const selectedIds = selectedReports.map(r => r.reportId);
+      filtered = filtered.filter(r => selectedIds.includes(r.reportId));
     }
 
     setFilteredReports(filtered);
@@ -245,20 +273,84 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
         <h2 className="section-title-filter">🔍 Filter Reports</h2>
   
         {/* Top Search Field */}
-        <div style={{ marginBottom: '1rem' }}>
-          <label className="label-filter" htmlFor="reportNameInput">
-            Search by Report Name
-          </label>
-          <input
-            id="reportNameInput"
-            className="input-report-name"
-            type="text"
-            placeholder="e.g. Report name"
-            value={reportNameQuery}
-            onChange={e => setReportNameQuery(e.target.value)}
-            style={{ width: '100%' }}
-          />
+        {/* Top Search Field - Minimal Style */}
+<div style={{ marginBottom: '1rem' }}>
+  <label className="label-filter" htmlFor="reportNameInput">
+    Search by Report Name or ID
+  </label>
+  <input
+  id="reportNameInput"
+  list="reportOptions"
+  className="input-report-name"
+  type="text"
+  placeholder="Start typing to search..."
+  value={reportNameQuery}
+  onChange={e => setReportNameQuery(e.target.value)}
+  onInput={e => {
+    const selectedText = e.target.value;
+    const match = reports.find(r =>
+      `${r.reportName} (${r.reportId})`.toLowerCase() === selectedText.toLowerCase()
+    );
+    if (match && !selectedReports.some(r => r.reportId === match.reportId)) {
+      setSelectedReports(prev => [...prev, match]);
+      setReportNameQuery('');
+    }
+  }}
+  style={{ width: '100%' }}
+/>
+  <datalist id="reportOptions">
+    {reports.map(r => (
+      <option key={r.reportId} value={`${r.reportName} (${r.reportId})`} />
+    ))}
+  </datalist>
+</div>
+
+
+{selectedReports.length > 0 && (
+  <div style={{ marginBottom: '1rem' }}>
+    <label className="label-filter">📌 Selected Reports:</label>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+      {selectedReports.map(r => (
+        <div
+          key={r.reportId}
+          className="selected-report-tag"
+          style={{
+            background: '#e0e0e0',
+            padding: '4px 8px',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            width: 'calc(20.333% - 0.5rem)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'red',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              marginRight: '0.5rem',
+              padding: 0
+            }}
+            onClick={() => setSelectedReports(prev => prev.filter(x => x.reportId !== r.reportId))}
+          >
+            ❌
+          </button>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {r.reportName} ({r.reportId})
+          </span>
         </div>
+      ))}
+    </div>
+  </div>
+)}
+
+
+
   
         {/* Grid-based Filters */}
         <div className="page-container-filter">
@@ -317,24 +409,27 @@ const [businessOwnerList, setBusinessOwnerList] = useState([]);
         </div>
  
         
-        <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={handleQuery}>
+        <button className="btn-primary-query" style={{ marginTop: '0.1rem' }} onClick={handleQuery}>
           🔍 Query Reports
         </button>
         <button
-          className="btn-secondary"
+          className="btn-secondary-clear-2"
           style={{ marginTop: '1rem', marginLeft: '1rem' }}
           onClick={() => {
             setReportNameQuery('');
             setSelectedBUs([]);
+            setSelectedReportIds([]);
+            setSearchMatchedReports([]);
             setSelectedStage([]);
             setSelectedFiles([]);
             setSelectedPIC('');
             setBusinessOwner('');
             setBusinessOwnerList([]);
+            setSelectedReports([]); // 🔁 Clear selected report tags
             setFilteredReports(reports); // reset to all
           }}
         >
-          🔄 Clear Filters
+          ❌ Clear Filters
         </button>
       </div>
 
