@@ -334,7 +334,7 @@ filtered.forEach((r) => {
       if (s.plannedStart && s.plannedEnd) {
         rows.push([
           `${baseId}`,
-          '', // 👈 fixed label width
+          stageName, // 👈 fixed label width
           'Planned',
           new Date(s.plannedStart),
           new Date(s.plannedEnd),
@@ -732,7 +732,7 @@ filtered.forEach((r) => {
                 height={
                   isExpanded
                     ? `${Math.max(allRows.length * 30, 80)}px`  // normal height when expanded
-                    : '60px'                                     // shorter height when collapsed
+                    : '140px'                                     // shorter height when collapsed
                 }                data={[columns, ...allRows]}
                 options={{
                   ...ganttOptions,

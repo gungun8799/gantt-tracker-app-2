@@ -299,3 +299,47 @@ app.post('/api/save-system-owner', async (req, res) => {
   }
 });
 
+
+// 🔹 GET /api/pic-options
+app.get('/api/pic-options', async (req, res) => {
+  try {
+    const snapshot = await db.collection('pic_options').get();
+    const result = {};
+    snapshot.forEach(doc => {
+      result[doc.id] = doc.data().names || [];
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('❌ Failed to fetch PIC options:', err);
+    res.status(500).json({ error: 'Failed to fetch PIC options' });
+  }
+});
+
+// 🔹 POST /api/save-pic-option
+app.post('/api/save-pic-option', async (req, res) => {
+  const { name, stageId } = req.body;
+
+  if (!name || !stageId) {
+    return res.status(400).json({ error: 'Missing name or stageId' });
+  }
+
+  try {
+    const docRef = db.collection('pic_options').doc(stageId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      await docRef.set({ names: [name] });
+    } else {
+      const existing = doc.data().names || [];
+      if (!existing.includes(name)) {
+        await docRef.update({ names: [...existing, name] });
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ Failed to save PIC option:', err);
+    res.status(500).json({ error: 'Failed to save PIC option' });
+  }
+});
+

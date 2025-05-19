@@ -382,6 +382,18 @@
     width: 120px;          /* ensures it starts at the left */
   }
 
+  .btn-secondary-clear-drill {
+    background-color: rgb(201, 201, 201);
+    border-radius: 10px;
+    color: black;
+    border: none;
+    padding: 0.1rem 0.5rem;
+    cursor: pointer;
+    display: block;           /* makes it respect container alignment */
+    margin-left: 0; 
+    width: 80px;          /* ensures it starts at the left */
+  }
+
   .gantt-block {
     background: #fff;
     border: 1px solid #ddd;
@@ -573,6 +585,17 @@
     font-weight: bold;
     display: inline-block;
 
+  }
+
+  .btn-primary-change-pic {
+    background-color: #ffffff;
+    color: #0072CE;
+    padding: 0.1rem 0.5rem;
+    font-size: 12px;
+    border-radius: 16px;
+    border-color: #0072CE;
+    font-weight: thin;
+    display: inline-block;
   }
 
   .recent-updates-table {

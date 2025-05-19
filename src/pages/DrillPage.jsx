@@ -236,7 +236,7 @@ data.forEach(r => {
         const rowCount = stageRows.length + 3; // +2 padding rows +1 today row
         const chartHeight = `${rowCount * 40}px`;
         return (
-          <div key={report.reportId} className="report-block">
+<div key={report.reportId} className="report-block">
             <h2
   className="section-title-2"
   style={{ cursor: 'pointer' }}
@@ -248,47 +248,62 @@ data.forEach(r => {
 
 {chartExpanded && (
   <div className="report-meta-horizontal">
+    {/* BU */}
     <div className="tag-group">
       <span className="tag-label">BU:</span>
-      <span className="tag">{report.usedBy?.[0]?.buName || '-'}</span>
+      <span className="tag">
+        {report.usedBy?.[0]?.buName?.trim() || '-'}
+      </span>
     </div>
+
+    {/* Owner */}
     <div className="tag-group">
       <span className="tag-label">Owner:</span>
-      {(report.businessOwners || ['-']).map((o, i) => (
+      {(report.businessOwners?.length ? report.businessOwners : ['-']).map((o, i) => (
         <span key={i} className="tag">{o}</span>
       ))}
     </div>
+
+    {/* PICs */}
     <div className="tag-group">
       <span className="tag-label">PICs:</span>
-      {(stage?.PICs || ['-']).map((p, i) => (
+      {(stage?.PICs?.length ? stage.PICs : ['-']).map((p, i) => (
         <span key={i} className="tag">{p}</span>
       ))}
     </div>
+
+    {/* Raw Files */}
     <div className="tag-group">
       <span className="tag-label">Raw Files:</span>
-      {(report.rawFiles || ['-']).map((f, i) => (
+      {(report.rawFiles?.length ? report.rawFiles : ['-']).map((f, i) => (
         <span
-        key={i}
-        className="tag clickable"
-        onClick={() => setSelectedFile(f)}
-      >
-        {f.fileName || f}
-      </span>
+          key={i}
+          className="tag clickable"
+          onClick={() => f !== '-' && setSelectedFile(f)}
+        >
+          {typeof f === 'string' ? f : f?.fileName || '-'}
+        </span>
       ))}
     </div>
+
+    {/* Issues */}
     <div className="tag-group">
       <span className="tag-label">Issues:</span>
-      <span className="tag">{stage?.issueDescription || '-'}</span>
+      <span className="tag">
+        {stage?.issueDescription?.trim() || '-'}
+      </span>
     </div>
   </div>
 )}
 
 
 
-                <button className="toggle-gantt-btn" onClick={() => toggleChart(report.reportId)}>
-                {chartExpanded ? '▲ Hide Details;' : '▼ Show Details'}
-                </button>
-            {chartExpanded && stageRows.length > 0 && (
+        <div style={{ height: '2.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
+          <button className="toggle-gantt-btn" onClick={() => toggleChart(report.reportId)}>
+            {chartExpanded ? '▲ Hide Details' : '▼ Show Details'}
+          </button>
+        </div>
+            {stageRows.length > 0 && (
               
 
               <Chart
@@ -309,8 +324,8 @@ data.forEach(r => {
                     },
                     palette: [
                       { color: 'transparent', label: '__HIDDEN__' },
-                      { color: '#1b9e77' },  // Planned
-                      { color: '#a8d5c0' },  // Actual
+                      { color: '#8ec0ea' },  // Planned
+                      { color: '#185c97' },  // Actual
                       { color: '#ffd54f', label: 'TODAY' }
                     ]
                   },
@@ -335,7 +350,7 @@ data.forEach(r => {
       <p><strong>File Name:</strong> {selectedFile.fileName}</p>
       <p><strong>System Name:</strong> {selectedFile.systemName}</p>
       <p><strong>System Owner:</strong> {selectedFile.systemOwner}</p>
-      <button onClick={() => setSelectedFile(null)} className="btn-secondary-clear">Close</button>
+      <button onClick={() => setSelectedFile(null)} className="btn-secondary-clear-drill">Close</button>
     </div>
   </div>
 )}

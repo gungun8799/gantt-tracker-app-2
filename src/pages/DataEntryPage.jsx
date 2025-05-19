@@ -14,7 +14,7 @@ const stageTemplate = [
   "Done"
 ];
 
-const BUs = ["AR MALL", "AR Tendor/Cash/O2O", "AR CI", "AR Debt", "AP Trade", "AP Non Trade"];
+const BUs = ["AR MALL", "AR Cash","AR Tendor","AR O2O", "AR CI", "AR Debt", "AP Trade", "AP Non Trade", "GL"];
 const Priorities = ["High", "Medium", "Low"];
 const rawFileOptions = [
   "AR | POS Declearation Report",
@@ -403,7 +403,18 @@ export default function DataEntryPage() {
     fetch(`${apiUrl}/api/system-owners`).then(res => res.json()).then(setSystemOwners);
   }, []);
 
-  
+  useEffect(() => {
+    // Add fetch for global PIC options per stageId
+    fetch(`${apiUrl}/api/pic-options`)
+      .then(res => res.json())
+      .then((data) => {
+        const updated = stages.map(stage => ({
+          ...stage,
+          picOptions: data[stage.stageId] || stage.picOptions
+        }));
+        setStages(updated);
+      });
+  }, []);
 
   const addToList = (value, setter, list) => {
     if (value && !list.includes(value)) setter([...list, value]);
@@ -470,12 +481,41 @@ export default function DataEntryPage() {
     setStages(updated);
   };
 
-  const handleAddPIC = (i) => {
+  const handleAddPIC = async (i) => {
     const updated = [...stages];
     const stage = updated[i];
-    if (stage.selectedPIC && !stage.PICs.includes(stage.selectedPIC)) {
-      stage.PICs.push(stage.selectedPIC);
+    const newPIC = stage.selectedPIC.trim();
+  
+    if (!newPIC) return;
+  
+    // Add to displayed PICs
+    if (!stage.PICs.includes(newPIC)) {
+      stage.PICs.push(newPIC);
     }
+  
+    // Save to backend if it's a new PIC option
+    if (!stage.picOptions.includes(newPIC)) {
+      stage.picOptions.push(newPIC);
+      console.log('💬 Saving PIC to backend:', newPIC, 'for', stage.stageId);
+  
+      try {
+        const res = await fetch(`${apiUrl}/api/save-pic-option`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newPIC, stageId: stage.stageId })
+        });
+  
+        if (!res.ok) {
+          const error = await res.json();
+          console.error('❌ Failed to save PIC:', error?.error || 'Unknown error');
+        } else {
+          console.log('✅ PIC saved successfully');
+        }
+      } catch (err) {
+        console.error('❌ Backend error while saving PIC:', err.message);
+      }
+    }
+  
     stage.selectedPIC = '';
     setStages(updated);
   };
@@ -500,9 +540,36 @@ export default function DataEntryPage() {
   
     return missing;
   };
-  const handleSubmit = async () => {
-    const missingFields = getMissingFields();
 
+
+
+
+  const handleSubmit = async () => {
+    // ✅ Auto-commit any unadded PICs
+    const updatedStages = stages.map(stage => {
+      const newPIC = stage.selectedPIC?.trim();
+      if (newPIC && !stage.picOptions.includes(newPIC)) {
+        stage.picOptions.push(newPIC);
+        console.log('📤 Saving PIC:', newPIC, 'for stage', stage.stageId); // ✅ ADD THIS
+        fetch(`${apiUrl}/api/save-pic-option`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newPIC, stageId: stage.stageId })
+        });
+      }
+
+      if (newPIC && !stage.PICs.includes(newPIC)) {
+        stage.PICs.push(newPIC);
+      }
+
+      stage.selectedPIC = '';
+      return stage;
+    });
+  
+    setStages(updatedStages); // ⚠️ optional, for UI consistency
+  
+    const missingFields = getMissingFields();
+  
     if (missingFields.length > 0) {
       alert(`❌ Please fill in the following required field(s):\n- ${missingFields.join('\n- ')}`);
       return;
@@ -512,9 +579,9 @@ export default function DataEntryPage() {
       buId: buName,
       buName,
       priority,
-      stages: stages.map(({ selectedPIC, picOptions, ...rest }) => rest)
+      stages: updatedStages.map(({ selectedPIC, picOptions, ...rest }) => rest)
     }));
-
+  
     const report = {
       reportId,
       reportName,
@@ -529,16 +596,15 @@ export default function DataEntryPage() {
       usedBy,
       rawFiles,
       businessOwners: businessOwnerList
-
     };
-
+  
     try {
-        
-        const res = await fetch(`${apiUrl}/api/save-report`, {        method: 'POST',
+      const res = await fetch(`${apiUrl}/api/save-report`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
       });
-
+  
       const result = await res.json();
       if (res.ok) {
         alert(`✅ Report "${report.reportId}" saved.`);
@@ -721,10 +787,16 @@ export default function DataEntryPage() {
               <label className="label" style={{ flex: '1 1 100%' }}>
                 PICs
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <select className="select" value={stage.selectedPIC} onChange={e => handleStageChange(i, 'selectedPIC', e.target.value)}>
-                    <option value="">Select PIC</option>
-                    {stage.picOptions.map(p => <option key={p}>{p}</option>)}
-                  </select>
+                <input
+                    className="input"
+                    list={`pic-list-${i}`}
+                    value={stage.selectedPIC}
+                    onChange={e => handleStageChange(i, 'selectedPIC', e.target.value)}
+                    placeholder="Type or select PIC"
+                  />
+                  <datalist id={`pic-list-${i}`}>
+                    {stage.picOptions.map(p => <option key={p} value={p} />)}
+                  </datalist>
                   <button className="btn-primary" type="button" onClick={() => handleAddPIC(i)}>+ Add PIC</button>
                 </div>
               </label>

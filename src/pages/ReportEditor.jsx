@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const [businessOwner, setBusinessOwner] = useState('');
   const [searchMatchedReports, setSearchMatchedReports] = useState([]);
   const [selectedReports, setSelectedReports] = useState([]); // full report objects
-
+  const [globalPicOptions, setGlobalPicOptions] = useState({});
   const [businessOwnerList, setBusinessOwnerList] = useState([]);
   const toggleReport = (reportId) => {
     setOpenReports(prev => ({ ...prev, [reportId]: !prev[reportId] }));
@@ -41,7 +41,12 @@ export default function DashboardPage() {
       .catch(err => console.error("❌ Failed to fetch reports:", err));
   }, []);
 
-
+  useEffect(() => {
+    fetch(`${apiUrl}/api/pic-options`)
+      .then(res => res.json())
+      .then(setGlobalPicOptions)
+      .catch(err => console.error("❌ Failed to fetch PIC options:", err));
+  }, []);
 
   const deleteReport = async (reportId) => {
     try {
@@ -183,21 +188,21 @@ export default function DashboardPage() {
   const handleFieldChange = (reportIdx, stageIdx, field, value) => {
     const updated = [...filteredReports];
     const stage = updated[reportIdx].usedBy[0].stages[stageIdx];
-
-    if (
-      (field === 'actualStart' || field === 'actualEnd' || field === 'issueDescription') &&
-      stage[field] !== value
-    ) {
+  
+    const oldVal = JSON.stringify(stage[field] || '');
+    const newVal = JSON.stringify(value || '');
+  
+    if (oldVal !== newVal) {
       updated[reportIdx].changeLog.push({
         changedBy: currentUserEmail,
         changeDate: new Date().toISOString(),
         changeType: "Update",
-        notes: `Changed ${field} from "${stage[field] || 'empty'}" to "${value}"`
+        notes: `Changed ${field} from "${oldVal}" to "${newVal}"`
       });
+  
+      stage[field] = value;
+      setFilteredReports(updated);
     }
-
-    stage[field] = value;
-    setFilteredReports(updated);
   };
 
   const handleCurrentStageChange = (reportIdx, newStageName) => {
@@ -595,6 +600,72 @@ export default function DashboardPage() {
       {isStageOpen && (
   <>
     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+      
+    <div style={{ flex: '1 1 100%' }}>
+  <label className="label-editor" style={{ display: 'block', marginBottom: '0.5rem' }}>
+    Person in Charge (PIC)
+  </label>
+
+  {!stage.editingPIC ? (
+    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      {stage.PICs?.length > 0 ? (
+        stage.PICs.map(p => (
+          <span key={p} className="selected-report-tag">{p}</span>
+        ))
+      ) : (
+        <span>No PIC Assigned</span>
+      )}
+      <button
+        className="btn-primary-change-pic"
+        onClick={() => {
+          const updated = [...filteredReports];
+          updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC = true;
+          setFilteredReports(updated);
+        }}
+      >
+        ✏️ Edit PIC
+      </button>
+    </div>
+  ) : (
+    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <select
+          multiple
+          className="select"
+          value={stage.PICs || []}
+          onChange={e => {
+            const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+            handleFieldChange(reportIdx, stageIdx, 'PICs', selected);
+          }}
+          style={{ width: '60%' }}
+        >
+          {(globalPicOptions[stage.stageId] || []).map(p => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+      <button
+        className="btn-primary"
+        onClick={() => {
+          const updated = [...filteredReports];
+          delete updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC;
+          setFilteredReports(updated);
+        }}
+      >
+        ✅ Save
+      </button>
+      <button
+        className="btn-secondary"
+        onClick={() => {
+          const updated = [...filteredReports];
+          delete updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC;
+          setFilteredReports(updated);
+        }}
+      >
+        ❌ Cancel
+      </button>
+    </div>
+  )}
+</div>
+      
       <label className="label-editor" style={{ flex: '1 1 45%' }}>
         Actual Start
         <input
@@ -623,6 +694,7 @@ export default function DashboardPage() {
           onChange={e => handleFieldChange(reportIdx, stageIdx, 'issueDescription', e.target.value)}
         />
       </label>
+      
     </div>
 
 {/* 
