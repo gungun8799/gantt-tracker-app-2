@@ -553,7 +553,7 @@ export default function DataEntryPage() {
     updated[i].plannedEnd = formatDate(today);
     updated[i].actualStart = formatDate(sevenDaysAgo);
     updated[i].actualEnd = formatDate(today);
-    updated[i].issueDescription = "Doe"; // 🆕 Auto-fill with "Doe"
+    updated[i].issueDescription = "Done"; // 🆕 Auto-fill with "Doe"
   
     setStages(updated);
   
