@@ -684,6 +684,28 @@ export default function DashboardPage() {
           onChange={e => handleFieldChange(reportIdx, stageIdx, 'actualEnd', e.target.value)}
         />
       </label>
+     
+      <label className="label-editor" style={{ flex: '1 1 45%' }}>
+          Planned Start
+          <input
+            type="date"
+            className="input"
+            value={stage.plannedStart || ''}
+            onChange={e => handleFieldChange(reportIdx, stageIdx, 'plannedStart', e.target.value)}
+          />
+        </label>
+
+        <label className="label-editor" style={{ flex: '1 1 45%' }}>
+          Planned End
+          <input
+            type="date"
+            className="input"
+            value={stage.plannedEnd || ''}
+            onChange={e => handleFieldChange(reportIdx, stageIdx, 'plannedEnd', e.target.value)}
+          />
+        </label>
+
+
       <label className="label-editor" style={{ flex: '1 1 100%' }}>
         Remark/Issues
         <textarea
