@@ -541,7 +541,27 @@ export default function DataEntryPage() {
     return missing;
   };
 
-
+  const handleFinishStage = (i) => {
+    const updated = [...stages];
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+  
+    const formatDate = (d) => d.toISOString().split('T')[0];
+  
+    updated[i].plannedStart = formatDate(sevenDaysAgo);
+    updated[i].plannedEnd = formatDate(today);
+    updated[i].actualStart = formatDate(sevenDaysAgo);
+    updated[i].actualEnd = formatDate(today);
+    updated[i].issueDescription = "Doe"; // 🆕 Auto-fill with "Doe"
+  
+    setStages(updated);
+  
+    // Set currentStage to the next one (if it exists)
+    if (i + 1 < updated.length) {
+      setCurrentStage(updated[i + 1].stageName);
+    }
+  };
 
 
   const handleSubmit = async () => {
@@ -811,6 +831,14 @@ export default function DataEntryPage() {
                 Issue Description
                 <input className="input" value={stage.issueDescription} onChange={e => handleStageChange(i, 'issueDescription', e.target.value)} />
               </label>
+
+              <button
+                  className="btn-secondary-finish"
+                  onClick={() => handleFinishStage(i)}
+                  style={{ marginTop: '1rem' }}
+                >
+                  ✅ Finish This Stage
+                </button>
             </div>
           </div>
         ))}
