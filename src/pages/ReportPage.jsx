@@ -234,10 +234,9 @@ filtered.forEach((r) => {
         { color: '#185c97', label: 'Planned' },
         { color: '#0870c9', label: 'Overall' },
         { color: '#8ec0ea', label: 'Actual' },
-        { color: '#ffd54f', label: 'TODAY' },
-        { color: '#ffd54f', label: 'TODAY2' },
-         // 👈 NEW invisible resource
-
+        { color: '#f4545c', label: 'TODAY' },
+        { color: '#f48c94', label: 'Planned-Current' }, // 🔴
+        { color: '#f48c94', label: 'Actual-Current' }   // 🔴
       ]
     },
     hAxis: {
@@ -314,13 +313,15 @@ filtered.forEach((r) => {
 
   const getStageRows = (report) => {
     const rows = [];
+    const currentStageName = report.currentStage;
     const stagesMap = {};
     const formatDate = (d) =>
-    new Date(d).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+      new Date(d).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+  
     (report.usedBy?.[0]?.stages || []).forEach(s => {
       stagesMap[s.stageName] = s;
     });
@@ -329,13 +330,14 @@ filtered.forEach((r) => {
       const s = stagesMap[stageName];
       if (!s) return;
       const baseId = `${report.reportId}-STG${i + 1}`;
+      const isCurrent = stageName === currentStageName;
   
       // Planned
       if (s.plannedStart && s.plannedEnd) {
         rows.push([
           `${baseId}`,
-          stageName, // 👈 fixed label width
-          'Planned',
+          stageName,
+          isCurrent ? 'Planned-Current' : 'Planned', // 🔴 red if current
           new Date(s.plannedStart),
           new Date(s.plannedEnd),
           null,
@@ -347,16 +349,15 @@ filtered.forEach((r) => {
   
       // Actual
       if (s.actualStart && s.actualEnd) {
-        const actualId = `${baseId}-actual`;
         rows.push([
-          actualId,
-          ``,
-          'Actual',
+          `${baseId}-actual`,
+          '',
+          isCurrent ? 'Actual-Current' : 'Actual', // 🔴 red if current
           new Date(s.actualStart),
           new Date(s.actualEnd),
           null,
           0,
-          `${report.reportId}-overall`, // 👈 Add dependency to overall row
+          `${report.reportId}-overall`,
           `<b>${stageName} (Actual)</b><br>Start: ${formatDate(s.actualStart)}<br>End: ${formatDate(s.actualEnd)}`
         ]);
       }
@@ -417,7 +418,7 @@ filtered.forEach((r) => {
   </button>
 </div>        
 
-<div className="filter-summary-row" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+<div className="filter-summary-row" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
   {/* 🔹 Left: Filter Fields */}
   
   <div className="filter-grid" style={{ flex: '1' }}>
@@ -670,7 +671,6 @@ filtered.forEach((r) => {
   {filtered.map((report) => {
     const isExpanded = expandedReports[report.reportId];
 
-    
     const allRows = [
       ...getTimelinePaddingRows(),
       getOverallRow(report),
@@ -678,41 +678,38 @@ filtered.forEach((r) => {
       getTodayRow()
     ].filter(Boolean);
 
-    for (const row of allRows.slice(1)) {
-      const resource = row[2];
-      const allowedResources = ganttOptions.gantt.palette.map(p => p.label);
-
-      if (resource && !allowedResources.includes(resource)) {
-        console.warn('⚠️ Unknown Resource:', resource);
-      }
-    }
-    console.log('🟡 Gantt rows:', allRows);
     return (
       <div key={report.reportId} className="report-row">
+        {/* Title Header */}
         <div
           className="report-info"
           onClick={() => toggleReport(report.reportId)}
-          style={{
-            cursor: 'pointer',
-            width: '100%'
-          }}
+          style={{ cursor: 'pointer', width: '100%' }}
         >
           <h3 className="report-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {isExpanded ? '▼' : '▶'} {report.reportName} ({report.reportId})
-            <span className="stage-tag">{report.currentStage || 'No Stage'}</span>
+            <span className="stage-tag-stages-2">{report.currentStage || 'No Stage'}</span>
           </h3>
-    
+
+          {/* Moved remark below title */}
           {isExpanded && (
-            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <div className="issue-description-2" style={{ marginTop: '0.5rem' }}>
+              <strong>Remark/Issues:</strong>{' '}
+              {(report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.issueDescription || '-'}
+            </div>
+          )}
+
+          {isExpanded && (
+            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <div><strong>BU:</strong> {report.usedBy?.[0]?.buName || '-'}</div>
               <div><strong>Biz Owner:</strong> {report.usedBy?.[0]?.businessOwner || '-'}</div>
               <div><strong>Stage:</strong> {report.currentStage || '-'}</div>
               <div><strong>Current PICs:</strong> {(report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.PICs?.join(', ') || '-'}</div>
-              <div><strong>Issues:</strong> {(report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.issueDescription || '-'}</div>
             </div>
           )}
         </div>
-    
+
+        {/* Gantt Chart */}
         {allRows.length > 0 && (
           <div
             className="report-gantt"
@@ -723,25 +720,24 @@ filtered.forEach((r) => {
               paddingBottom: '1rem',
             }}
           >
-            
-            <div style={{ minWidth: '1400px' /* or wider depending on scale */ }}>
-              
+            <div style={{ minWidth: '1400px' }}>
               <Chart
                 chartType="Gantt"
                 width="100%"
                 height={
                   isExpanded
-                    ? `${Math.max(allRows.length * 30, 80)}px`  // normal height when expanded
-                    : '140px'                                     // shorter height when collapsed
-                }                data={[columns, ...allRows]}
+                    ? `${Math.max(allRows.length * 30, 80)}px`
+                    : '140px'
+                }
+                data={[columns, ...allRows]}
                 options={{
                   ...ganttOptions,
                   tooltip: {
                     isHtml: true,
-                    trigger: 'selection' // ✅ force use of your custom tooltip
+                    trigger: 'selection',
                   }
-                }}              
-                 loader={<div>Loading Gantt Chart...</div>}
+                }}
+                loader={<div>Loading Gantt Chart...</div>}
               />
             </div>
           </div>
