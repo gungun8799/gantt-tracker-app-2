@@ -286,8 +286,8 @@ export default function OverallPage() {
       <div style={{ marginTop:'2rem', overflowX:'auto' }}>
         <Chart
           chartType="Gantt"
-          width="100%"
-          height={`${Math.max(ganttRows.length*30,200)}px`}
+          width="95%"
+          height={`${Math.max(ganttRows.length*30,500)}px`}
           data={[columns, ...ganttRows]}
           options={{
             gantt:{
@@ -299,7 +299,7 @@ export default function OverallPage() {
                 { color:'#0D47A1', label:'Category'      },
                 { color:'#70B6FF', label:'BU'            },
                 { color:'#8D8E90', label:'Report'        },
-                { color:'#EC9904', label:'Stage'         },
+                { color:'#FFB42F', label:'Stage'         },
                 { color:'#E53935', label:'Current Stage' },
                 { color:'#BDBDBD', label:'Today'         }
               ]
