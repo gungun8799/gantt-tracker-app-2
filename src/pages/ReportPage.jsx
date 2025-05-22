@@ -117,16 +117,17 @@ let delayedTaskCount = 0;
 
 reports.forEach(report => {
   const stages = report.usedBy?.[0]?.stages || [];
+  const currentStage = report.currentStage;
   let reportHasDelay = false;
 
   stages.forEach(stage => {
+    const isCurrentStage = stage.stageName === currentStage;
     const plannedEnd = stage.plannedEnd && new Date(stage.plannedEnd);
-    const actualEnd = stage.actualEnd && new Date(stage.actualEnd);
 
-    if (plannedEnd && plannedEnd < today && !actualEnd) {
+    if (isCurrentStage && plannedEnd && plannedEnd < today) {
       delayedTaskCount++;
       reportHasDelay = true;
-      console.log(`⚠️ Delayed Stage: ${stage.stageName} in report ${report.reportName}`);
+      console.log(`⚠️ Delayed Current Stage: ${stage.stageName} in report ${report.reportName}`);
     }
   });
 
