@@ -64,7 +64,8 @@ export default function OverallPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000
+/api/get-reports`)
       .then(r => r.json())
       .then(setReports)
       .catch(console.error);
@@ -236,48 +237,66 @@ export default function OverallPage() {
 
       {/* SUMMARY TABLE */}
       <table className="report-table">
-        <thead>
-          <tr>
-            <th>Pending Reports</th>
-            {stageNames.map((s,i)=>(
-              <th key={i}>
-                <button className="stage-icon" disabled>
-                  {stageIcons[i]}
-                </button>
-                <div className="stage-label">{s}</div>
-              </th>
-            ))}
-          </tr>
-          <tr>
-            <td><strong>Responsible Persons</strong></td>
-            {stageNames.map((s,i)=>(
-              <td key={i} className="responsible">{picByStage[s]||'-'}</td>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(buSummary).map(([bu],i)=>(
-            <tr key={i}>
-              <td>{bu}</td>
-              {stageNames.map((s,j)=>{
-                const count = filteredReports.filter(r=>
-                  r.usedBy?.[0]?.buName===bu && r.currentStage===s
-                ).length;
-                return (
-                  <td
-                    key={j}
-                    className={count===0?'done':'clickable-cell'}
-                    onClick={()=>navigate(
-                      `/drill/${encodeURIComponent(s)}/${encodeURIComponent(bu)}`
-                    )}
-                    title={`Drill into ${s}`}
-                  >{count}</td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  <thead>
+    <tr>
+      <th>Pending Reports</th>
+      {stageNames.map((s, i) => (
+        <th key={i}>
+          <button className="stage-icon" disabled>
+            {stageIcons[i]}
+          </button>
+          <div className="stage-label">{s}</div>
+        </th>
+      ))}
+    </tr>
+    <tr>
+      <td><strong>Responsible Persons</strong></td>
+      {stageNames.map((s, i) => (
+        <td key={i} className="responsible">{picByStage[s] || '-'}</td>
+      ))}
+    </tr>
+  </thead>
+  <tbody>
+    {/* ── Total row ───────────────────────────────── */}
+    <tr className="total-row">
+      <td><strong>Total ({filteredReports.length})</strong></td>
+      {stageNames.map((stage, idx) => {
+        const stageTotal = filteredReports.filter(r => r.currentStage === stage).length;
+        return (
+          <td key={idx}>
+            <strong>{stageTotal}</strong>
+          </td>
+        );
+      })}
+    </tr>
+
+    {/* ── BU rows ───────────────────────────────────── */}
+    {Object.entries(buSummary).map(([bu], i) => (
+      <tr key={i}>
+        <td>{bu}</td>
+        {stageNames.map((s, j) => {
+          const count = filteredReports.filter(r =>
+            r.usedBy?.[0]?.buName === bu && r.currentStage === s
+          ).length;
+          return (
+            <td
+              key={j}
+              className={count === 0 ? 'done' : 'clickable-cell'}
+              onClick={() =>
+                navigate(
+                  `/drill/${encodeURIComponent(s)}/${encodeURIComponent(bu)}`
+                )
+              }
+              title={`Drill into ${s}`}
+            >
+              {count}
+            </td>
+          );
+        })}
+      </tr>
+    ))}
+  </tbody>
+</table>
 
       {/* GANTT CHART */}
       <div style={{ marginTop:'2rem', overflowX:'auto' }}>
