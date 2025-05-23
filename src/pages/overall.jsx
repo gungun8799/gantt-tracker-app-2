@@ -70,7 +70,7 @@ export default function OverallPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(r => r.json())
       .then(setReports)
       .catch(console.error);
