@@ -22,7 +22,6 @@ const stageNames = [
   'Done'
 ];
 
-// no change to columns or getMinMaxDate / getTodayRow
 const columns = [
   { type: 'string', label: 'Task ID' },
   { type: 'string', label: 'Task Name' },
@@ -49,11 +48,7 @@ const getTodayRow = () => {
   const now   = new Date();
   const start = new Date(now.setHours(0,0,0,0));
   const end   = new Date(now.setHours(23,59,59,999));
-  return [
-    'TODAY','Today','Today',
-    start,end,
-    null,100,null
-  ];
+  return ['TODAY','Today','Today', start, end, null, 100, null];
 };
 
 const stageIcons = [
@@ -65,7 +60,7 @@ export default function OverallPage() {
   const [reports,    setReports]    = useState([]);
   const [expandedBu, setExpandedBu] = useState([]);
   const [expandedRpt,setExpandedRpt]= useState([]);
-  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'delayed' | 'due3' | 'due5'
+  const [filterMode, setFilterMode] = useState('all');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,30 +70,25 @@ export default function OverallPage() {
       .catch(console.error);
   }, []);
 
-  // ─── compute Today + cutoff dates ─────────────────
   const today = new Date(); today.setHours(0,0,0,0);
   const in3   = new Date(today); in3.setDate(in3.getDate()+3);
   const in5   = new Date(today); in5.setDate(in5.getDate()+5);
 
-  // ─── categorize report IDs ─────────────────────────
-  const delayedIds = new Set();
-  const due3Ids    = new Set();
-  const due5Ids    = new Set();
+  // compute delayed / due-in counts
+  const delayedIds = new Set(), due3Ids = new Set(), due5Ids = new Set();
   reports.forEach(r => {
-    const stages = r.usedBy?.[0]?.stages || [];
-    const curr   = stages.find(s => s.stageName === r.currentStage);
-    if (!curr || !curr.plannedEnd) return;
+    const curr = r.usedBy?.[0]?.stages?.find(s => s.stageName === r.currentStage);
+    if (!curr?.plannedEnd) return;
     const end = new Date(curr.plannedEnd);
-    if (end < today)           delayedIds.add(r.reportId);
+    if (end < today) delayedIds.add(r.reportId);
     if (end >= today && end <= in3) due3Ids.add(r.reportId);
     if (end >= today && end <= in5) due5Ids.add(r.reportId);
   });
-
   const delayedCount = delayedIds.size;
   const due3Count    = due3Ids.size;
   const due5Count    = due5Ids.size;
 
-  // ─── filter the full report list ────────────────────
+  // filter by card
   const filteredReports = reports.filter(r => {
     if (filterMode === 'delayed') return delayedIds.has(r.reportId);
     if (filterMode === 'due3')    return due3Ids.has(r.reportId);
@@ -106,7 +96,7 @@ export default function OverallPage() {
     return true;
   });
 
-  // ─── summary table data ─────────────────────────────
+  // summary table data
   const buSummary = {};
   const picByStage = {};
   filteredReports.forEach(r => {
@@ -116,12 +106,12 @@ export default function OverallPage() {
   stageNames.forEach(stage => {
     picByStage[stage] = [...new Set(
       filteredReports.flatMap(r =>
-        r.usedBy?.[0]?.stages?.find(s => s.stageName===stage)?.PICs || []
+        r.usedBy?.[0]?.stages?.find(s => s.stageName === stage)?.PICs || []
       )
     )].join(', ');
   });
 
-  // ─── Gantt rows ──────────────────────────────────────
+  // build Gantt rows including General category
   const ganttRows = (() => {
     const rows = [ getTodayRow() ];
     const byBu = {};
@@ -130,80 +120,89 @@ export default function OverallPage() {
       (byBu[bu]|| (byBu[bu]=[])).push(r);
     });
 
-    ['AR','AP','GL'].forEach(cat => {
-      const catDates = Object.entries(byBu)
-        .filter(([bu])=>bu.startsWith(cat))
-        .flatMap(([,list])=>
-          list.flatMap(r=>getMinMaxDate(r.usedBy?.[0]?.stages||[])||[])
-        );
+    const categories = ['AR','AP','GL','General'];
+    categories.forEach(cat => {
+      // select BU entries for this category
+      const entries = Object.entries(byBu).filter(([bu,list]) =>
+        cat === 'General'
+          ? !['AR','AP','GL'].some(pref => bu.startsWith(pref))
+          : bu.startsWith(cat)
+      );
+      // gather all dates
+      const catDates = entries.flatMap(([,list]) =>
+        list.flatMap(r => getMinMaxDate(r.usedBy?.[0]?.stages||[])||[])
+      );
       if (!catDates.length) return;
       const catMin = new Date(Math.min(...catDates));
       const catMax = new Date(Math.max(...catDates));
+
+      // Category row
       rows.push([`CAT-${cat}`, cat, 'Category', catMin, catMax, null,0,null]);
 
-      Object.entries(byBu)
-        .filter(([bu])=>bu.startsWith(cat))
-        .forEach(([bu,list])=>{
-          const buDates = list.flatMap(r=>getMinMaxDate(r.usedBy?.[0]?.stages||[])||[]);
-          if (!buDates.length) return;
-          const buMin = new Date(Math.min(...buDates));
-          const buMax = new Date(Math.max(...buDates));
-          const arrowBu = expandedBu.includes(bu)?'▼':'▶';
-          rows.push([`BU-${bu}`,`${arrowBu} ${bu}`,'BU',buMin,buMax,null,0,null]);
-          if (expandedBu.includes(bu)) {
-            list.forEach(r=>{
-              const mm = getMinMaxDate(r.usedBy?.[0]?.stages||[]);
-              if (!mm) return;
-              const hasStages = (r.usedBy?.[0]?.stages||[]).length>0;
-              const arrowRpt = hasStages
-                ? (expandedRpt.includes(r.reportId)?'▼':'▶')
-                : ' ';
-              rows.push([
-                `RPT-${r.reportId}`,
-                `${arrowRpt} ${r.reportName}`,
-                'Report',
-                mm[0], mm[1],
-                null,0,`BU-${bu}`
-              ]);
-              if (expandedRpt.includes(r.reportId)) {
-                r.usedBy[0].stages.forEach(stage=>{
-                  if (!(stage.plannedStart&&stage.plannedEnd)) return;
-                  const isCurrent = stage.stageName===r.currentStage;
-                  rows.push([
-                    `STG-${r.reportId}-${stage.stageName.replace(/\s+/g,'_')}`,
-                    stage.stageName,
-                    isCurrent?'Current Stage':'Stage',
-                    new Date(stage.plannedStart),
-                    new Date(stage.plannedEnd),
-                    null,0,`RPT-${r.reportId}`
-                  ]);
-                });
-              }
-            });
-          }
-        });
+      // each BU in this category
+      entries.forEach(([bu,list]) => {
+        const buDates = list.flatMap(r => getMinMaxDate(r.usedBy?.[0]?.stages||[])||[]);
+        const buMin = new Date(Math.min(...buDates));
+        const buMax = new Date(Math.max(...buDates));
+        const arrowBu = expandedBu.includes(bu)?'▼':'▶';
+        rows.push([`BU-${bu}`, `${arrowBu} ${bu}`, 'BU', buMin, buMax, null,0,null]);
+
+        if (expandedBu.includes(bu)) {
+          list.forEach(r => {
+            const mm = getMinMaxDate(r.usedBy?.[0]?.stages||[]);
+            if (!mm) return;
+            const hasStages = (r.usedBy?.[0]?.stages||[]).length>0;
+            const arrowRpt = hasStages
+              ? (expandedRpt.includes(r.reportId)?'▼':'▶')
+              : ' ';
+            rows.push([
+              `RPT-${r.reportId}`,
+              `${arrowRpt} ${r.reportName}`,
+              'Report',
+              mm[0], mm[1], null,0,`BU-${bu}`
+            ]);
+            if (expandedRpt.includes(r.reportId)) {
+              r.usedBy[0].stages.forEach(stage => {
+                if (!(stage.plannedStart && stage.plannedEnd)) return;
+                const isCurrent = stage.stageName === r.currentStage;
+                rows.push([
+                  `STG-${r.reportId}-${stage.stageName.replace(/\s+/g,'_')}`,
+                  stage.stageName,
+                  isCurrent ? 'Current Stage' : 'Stage',
+                  new Date(stage.plannedStart),
+                  new Date(stage.plannedEnd),
+                  null,0,`RPT-${r.reportId}`
+                ]);
+              });
+            }
+          });
+        }
+      });
     });
 
     return rows;
   })();
 
-  // ─── expand/collapse handler ─────────────────────────
-  const chartEvents = [{ eventName:'select', callback:({chartWrapper})=>{
-    const sel = chartWrapper.getChart().getSelection();
-    if (!sel.length) return;
-    const taskId = chartWrapper.getDataTable().getValue(sel[0].row,0);
-    if (taskId.startsWith('BU-')) {
-      const bu = taskId.slice(3);
-      setExpandedBu(prev => prev.includes(bu)?prev.filter(x=>x!==bu):[...prev,bu]);
-    } else if (taskId.startsWith('RPT-')) {
-      const rpt = taskId.slice(4);
-      setExpandedRpt(prev=> prev.includes(rpt)?prev.filter(x=>x!==rpt):[...prev,rpt]);
+  // expand/collapse
+  const chartEvents = [{
+    eventName:'select',
+    callback:({ chartWrapper }) => {
+      const sel = chartWrapper.getChart().getSelection();
+      if (!sel.length) return;
+      const taskId = chartWrapper.getDataTable().getValue(sel[0].row,0);
+      if (taskId.startsWith('BU-')) {
+        const bu = taskId.slice(3);
+        setExpandedBu(prev => prev.includes(bu)?prev.filter(x=>x!==bu):[...prev,bu]);
+      } else if (taskId.startsWith('RPT-')) {
+        const rpt = taskId.slice(4);
+        setExpandedRpt(prev => prev.includes(rpt)?prev.filter(x=>x!==rpt):[...prev,rpt]);
+      }
     }
-  }}];
+  }];
 
   return (
     <div className="overall-container">
-      {/* ─── HEADER with three cards ─────────────────────── */}
+      {/* HEADER & CARDS */}
       <div style={{
         display:'flex',
         justifyContent:'space-between',
@@ -235,7 +234,7 @@ export default function OverallPage() {
         </div>
       </div>
 
-      {/* ─── SUMMARY TABLE ─────────────────────────────────── */}
+      {/* SUMMARY TABLE */}
       <table className="report-table">
         <thead>
           <tr>
@@ -272,9 +271,7 @@ export default function OverallPage() {
                       `/drill/${encodeURIComponent(s)}/${encodeURIComponent(bu)}`
                     )}
                     title={`Drill into ${s}`}
-                  >
-                    {count}
-                  </td>
+                  >{count}</td>
                 );
               })}
             </tr>
@@ -282,7 +279,7 @@ export default function OverallPage() {
         </tbody>
       </table>
 
-      {/* ─── GANTT CHART ───────────────────────────────────── */}
+      {/* GANTT CHART */}
       <div style={{ marginTop:'2rem', overflowX:'auto' }}>
         <Chart
           chartType="Gantt"
@@ -291,17 +288,17 @@ export default function OverallPage() {
           data={[columns, ...ganttRows]}
           options={{
             gantt:{
-              labelStyle:{fontName:'Segoe UI',fontSize:12},
+              labelStyle:{ fontName:'Segoe UI', fontSize:12 },
               trackHeight:28,
-              arrow:{angle:0,width:0,color:'transparent',radius:0},
+              arrow:{ angle:0, width:0, color:'transparent', radius:0 },
               criticalPathEnabled:false,
               palette:[
-                { color:'#0D47A1', label:'Category'      },
-                { color:'#70B6FF', label:'BU'            },
-                { color:'#8D8E90', label:'Report'        },
-                { color:'#FFB42F', label:'Stage'         },
+                { color:'#0D47A1', label:'Category' },
+                { color:'#70B6FF', label:'BU' },
+                { color:'#8D8E90', label:'Report' },
+                { color:'#FFB42F', label:'Stage' },
                 { color:'#E53935', label:'Current Stage' },
-                { color:'#BDBDBD', label:'Today'         }
+                { color:'#BDBDBD', label:'Today' }
               ]
             },
             hAxis:{
