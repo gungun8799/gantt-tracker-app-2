@@ -14,7 +14,7 @@ const stageTemplate = [
   "Done"
 ];
 
-const BUs = ["AR MALL", "AR Cash","AR Tendor","AR O2O", "AR CI", "AR Debt", "AP Trade", "AP Non Trade", "GL"];
+const BUs = ["General", "AP","AR","GL","AR MALL", "AR Cash","AR Tendor","AR O2O", "AR CI", "AR Debt", "AP Trade", "AP Non Trade", "GL"];
 const Priorities = ["High", "Medium", "Low"];
 const rawFileOptions = [
   "AR | POS Declearation Report",
