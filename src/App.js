@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import './styles/Pages.css';
-import { Menu, FileText, Table, BarChart, Clock, List, LogOut } from 'lucide-react';
-
-import DataEntryPage from './pages/DataEntryPage';
+import { Menu, FileText, Table, BarChart, Clock, List, LogOut, Users } from 'lucide-react';
 import ReportEditor from './pages/ReportEditor';
+import DataEntryPage from './pages/DataEntryPage';
 import ReportPage from './pages/ReportPage';
 import RecentUpdatesPage from './pages/RecentUpdatesPage';
 import OverallPage from './pages/overall';
 import DrillPage from './pages/DrillPage';
 import LoginPage from './pages/LoginPage';
+import ResourceOverviewPage from './pages/ResourceOverview';
 
 function Sidebar({ role, onLogout }) {
   const location = useLocation();
@@ -17,11 +17,42 @@ function Sidebar({ role, onLogout }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const allLinks = [
-    { path: '/entry', label: 'Data Entry', icon: <FileText size={18} />, roles: ['admin'] },
-    { path: '/editor', label: 'ReportEditor', icon: <Table size={18} />, roles: ['admin', 'viewer'] },
-    { path: '/report', label: 'Summary Report', icon: <BarChart size={18} />, roles: ['admin', 'viewer','user'] },
-    { path: '/overall', label: 'Overall', icon: <List size={18} />, roles: ['admin', 'viewer',,'user'] },
-    { path: '/recent', label: 'Recent Updates', icon: <Clock size={18} />, roles: ['admin', 'viewer'] },
+    {
+      path: '/entry',
+      label: 'Data Entry',
+      icon: <FileText size={18} />,
+      roles: ['admin']
+    },
+    {
+      path: '/editor',
+      label: 'Report Editor',
+      icon: <Table size={18} />,
+      roles: ['admin', 'viewer']
+    },
+    {
+      path: '/report',
+      label: 'Summary Report',
+      icon: <BarChart size={18} />,
+      roles: ['admin', 'viewer', 'user']
+    },
+    {
+      path: '/overall',
+      label: 'Overall',
+      icon: <List size={18} />,
+      roles: ['admin', 'viewer', 'user']
+    },
+    {
+      path: '/resources',
+      label: 'Resource Overview',
+      icon: <Users size={18} />,
+      roles: ['admin', 'viewer', 'user']
+    },
+    {
+      path: '/recent',
+      label: 'Recent Updates',
+      icon: <Clock size={18} />,
+      roles: ['admin', 'viewer']
+    }
   ];
 
   const links = allLinks.filter(link => link.roles.includes(role));
@@ -63,8 +94,7 @@ function App() {
     if (saved) {
       try {
         setUser(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse user from localStorage');
+      } catch {
         localStorage.removeItem('user');
       }
     }
@@ -76,7 +106,6 @@ function App() {
     setUser(null);
   };
 
-  // ✅ Absolutely wait before any rendering
   if (loading) return <div className="loading-screen">Loading...</div>;
 
   return (
@@ -85,27 +114,31 @@ function App() {
         {isAuthenticated && <Sidebar role={user.role} onLogout={handleLogout} />}
         <div className="main-content">
           <Routes>
-            {/* LOGIN PATHS */}
+            {/* Public */}
             {!isAuthenticated && (
               <>
-                <Route path="/" element={<LoginPage setUser={(u) => {
-                  setUser(u);
-                  localStorage.setItem('user', JSON.stringify(u));
-                }} />} />
-                <Route path="*" element={<Navigate to="/" />} />
+                <Route path="/" element={
+                  <LoginPage setUser={u => {
+                    setUser(u);
+                    localStorage.setItem('user', JSON.stringify(u));
+                  }}/>
+                }/>
+                <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}
 
-            {/* PROTECTED ROUTES */}
+            {/* Private */}
             {isAuthenticated && (
               <>
-                <Route path="/" element={<Navigate to="/overall" />} />
-                {user.role === 'admin' && <Route path="/entry" element={<DataEntryPage />} />}
-                <Route path="/editor" element={<ReportEditor />} />
-                <Route path="/report" element={<ReportPage />} />
-                <Route path="/recent" element={<RecentUpdatesPage />} />
-                <Route path="/overall" element={<OverallPage />} />
-                <Route path="/drill/:stageName/:buName" element={<DrillPage />} />                <Route path="*" element={<Navigate to="/overall" />} />
+                <Route path="/" element={<Navigate to="/overall" replace />} />
+                {user.role === 'admin' && <Route path="/entry"      element={<DataEntryPage />} />}
+                <Route                        path="/editor"     element={<ReportEditor />} />
+                <Route                        path="/report"     element={<ReportPage />} />
+                <Route                        path="/overall"    element={<OverallPage />} />
+                <Route                        path="/resources"  element={<ResourceOverviewPage />} />
+                <Route                        path="/recent"     element={<RecentUpdatesPage />} />
+                <Route                        path="/drill/:stageName/:buName" element={<DrillPage />} />
+                <Route path="*" element={<Navigate to="/overall" replace />} />
               </>
             )}
           </Routes>

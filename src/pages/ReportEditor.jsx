@@ -32,7 +32,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         setReports(data);
@@ -42,7 +42,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/pic-options`)
+    fetch(`${apiUrl}/api/pic-options`)
       .then(res => res.json())
       .then(setGlobalPicOptions)
       .catch(err => console.error("❌ Failed to fetch PIC options:", err));
@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   const deleteReport = async (reportId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/delete-report`, {
+      const res = await fetch(`${apiUrl}/api/delete-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId }),
@@ -185,6 +185,40 @@ export default function DashboardPage() {
     setFilteredReports(filtered);
   };
 
+  const handleAddPIC = (reportIdx, stageIdx) => {
+    const updated = [...filteredReports];
+    const st = updated[reportIdx].usedBy[0].stages[stageIdx];
+  
+    // ensure the arrays exist
+    if (!Array.isArray(st.PICs)) st.PICs = [];
+    if (!Array.isArray(st.picOptions)) st.picOptions = [];
+  
+    const newPIC = (st.selectedPIC || '').trim();
+    if (!newPIC) return;
+  
+    if (!st.PICs.includes(newPIC)) {
+      st.PICs.push(newPIC);
+    }
+    if (!st.picOptions.includes(newPIC)) {
+      st.picOptions.push(newPIC);
+    }
+    // clear input
+    st.selectedPIC = '';
+    setFilteredReports(updated);
+  };
+  
+  const handleRemovePIC = (reportIdx, stageIdx, name) => {
+    const updated = [...filteredReports];
+    const st = updated[reportIdx].usedBy[0].stages[stageIdx];
+  
+    // ensure the array exists
+    if (!Array.isArray(st.PICs)) st.PICs = [];
+  
+    st.PICs = st.PICs.filter(p => p !== name);
+    setFilteredReports(updated);
+  };
+
+
   const handleFieldChange = (reportIdx, stageIdx, field, value) => {
     const updated = [...filteredReports];
     const stage = updated[reportIdx].usedBy[0].stages[stageIdx];
@@ -252,7 +286,7 @@ export default function DashboardPage() {
         });
       }
   
-      const res = await fetch(`http://localhost:4000/api/update-report`, {
+      const res = await fetch(`${apiUrl}/api/update-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
@@ -644,42 +678,66 @@ export default function DashboardPage() {
       </button>
     </div>
   ) : (
-    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <select
-          multiple
-          className="select"
-          value={stage.PICs || []}
-          onChange={e => {
-            const selected = Array.from(e.target.selectedOptions, opt => opt.value);
-            handleFieldChange(reportIdx, stageIdx, 'PICs', selected);
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+  {/* input + add button */}
+  <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <input
+      className="input"
+      list={`pic-list-${stage.stageId}`}
+      value={stage.selectedPIC || ''}
+      placeholder="Type or select PIC"
+      onChange={e => {
+        const updated = [...filteredReports];
+        updated[reportIdx].usedBy[0].stages[stageIdx].selectedPIC = e.target.value;
+        setFilteredReports(updated);
+      }}
+    />
+    <datalist id={`pic-list-${stage.stageId}`}>
+      {(globalPicOptions[stage.stageId] || []).map(p => (
+        <option key={p} value={p} />
+      ))}
+    </datalist>
+    <button
+      className="btn-primary"
+      onClick={() => handleAddPIC(reportIdx, stageIdx)}
+    >
+      + Add PIC
+    </button>
+  </div>
+
+  {/* current PIC tags */}
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+    {(stage.PICs || []).map(p => (
+      <span key={p} className="selected-report-tag">
+        {p}
+        <button
+          style={{
+            background: 'transparent',
+            border: 'none',
+            marginLeft: '0.25rem',
+            cursor: 'pointer',
+            color: 'red',
           }}
-          style={{ width: '60%' }}
+          onClick={() => handleRemovePIC(reportIdx, stageIdx, p)}
         >
-          {(globalPicOptions[stage.stageId] || []).map(p => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-      <button
-        className="btn-primary"
-        onClick={() => {
-          const updated = [...filteredReports];
-          delete updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC;
-          setFilteredReports(updated);
-        }}
-      >
-        ✅ Save
-      </button>
-      <button
-        className="btn-secondary"
-        onClick={() => {
-          const updated = [...filteredReports];
-          delete updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC;
-          setFilteredReports(updated);
-        }}
-      >
-        ❌ Cancel
-      </button>
-    </div>
+          ×
+        </button>
+      </span>
+    ))}
+  </div>
+
+  {/* cancel editing */}
+  <button
+    className="btn-secondary"
+    onClick={() => {
+      const updated = [...filteredReports];
+      delete updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC;
+      setFilteredReports(updated);
+    }}
+  >
+    ❌ Cancel
+  </button>
+</div>
   )}
 </div>
       
