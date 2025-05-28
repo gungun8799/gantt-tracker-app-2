@@ -299,6 +299,43 @@ app.post('/api/save-system-owner', async (req, res) => {
   }
 });
 
+// ↓ replace your existing app.post('/api/mass-update-pic', …) with this:
+app.post('/api/mass-update-pic', async (req, res) => {
+  const { reportIds, picUpdates } = req.body;
+  if (!Array.isArray(reportIds) || typeof picUpdates !== 'object') {
+    return res.status(400).json({ error: 'Invalid payload' });
+  }
+
+  try {
+    await Promise.all(reportIds.map(async reportId => {
+      const docRef = db.collection('reports').doc(reportId);
+      const snap = await docRef.get();
+      if (!snap.exists) return;  // nothing to update if report not found
+
+      const report = snap.data();
+      // update each usedBy → stages → PICs
+      const updatedUsedBy = (report.usedBy || []).map(u => {
+        const updatedStages = (u.stages || []).map(stage => {
+          const newPics = picUpdates[stage.stageId];
+          if (Array.isArray(newPics)) {
+            return { ...stage, PICs: newPics };
+          }
+          return stage;
+        });
+        return { ...u, stages: updatedStages };
+      });
+
+      // write back the modified report
+      await docRef.set({ ...report, usedBy: updatedUsedBy });
+    }));
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ mass-update-pic error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 // 🔹 GET /api/pic-options
 app.get('/api/pic-options', async (req, res) => {

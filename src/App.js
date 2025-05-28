@@ -10,6 +10,8 @@ import OverallPage from './pages/overall';
 import DrillPage from './pages/DrillPage';
 import LoginPage from './pages/LoginPage';
 import ResourceOverviewPage from './pages/ResourceOverview';
+import MassEditPage from './pages/MassEdit';
+
 
 function Sidebar({ role, onLogout }) {
   const location = useLocation();
@@ -17,6 +19,18 @@ function Sidebar({ role, onLogout }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const allLinks = [
+    {
+      path: '/overall',
+      label: 'Overall',
+      icon: <List size={18} />,
+      roles: ['admin', 'viewer', 'user']
+    },
+    {
+      path: '/report',
+      label: 'Summary Report',
+      icon: <BarChart size={18} />,
+      roles: ['admin', 'viewer', 'user']
+    },
     {
       path: '/entry',
       label: 'Data Entry',
@@ -29,18 +43,8 @@ function Sidebar({ role, onLogout }) {
       icon: <Table size={18} />,
       roles: ['admin', 'viewer']
     },
-    {
-      path: '/report',
-      label: 'Summary Report',
-      icon: <BarChart size={18} />,
-      roles: ['admin', 'viewer', 'user']
-    },
-    {
-      path: '/overall',
-      label: 'Overall',
-      icon: <List size={18} />,
-      roles: ['admin', 'viewer', 'user']
-    },
+
+
     {
       path: '/resources',
       label: 'Resource Overview',
@@ -52,7 +56,9 @@ function Sidebar({ role, onLogout }) {
       label: 'Recent Updates',
       icon: <Clock size={18} />,
       roles: ['admin', 'viewer']
-    }
+    },
+    { path: '/mass-edit', label: 'Mass Edit', icon: <Table size={18}/> /* or any icon */, roles: ['admin'] },
+
   ];
 
   const links = allLinks.filter(link => link.roles.includes(role));
@@ -139,6 +145,7 @@ function App() {
                 <Route                        path="/recent"     element={<RecentUpdatesPage />} />
                 <Route                        path="/drill/:stageName/:buName" element={<DrillPage />} />
                 <Route path="*" element={<Navigate to="/overall" replace />} />
+                <Route path="/mass-edit" element={<MassEditPage />} />
               </>
             )}
           </Routes>
