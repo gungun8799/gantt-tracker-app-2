@@ -21,6 +21,18 @@ const stageNames = [
   'File sourcing automation',
   'Done'
 ];
+// maps your real stageName → the one you want to *display*
+const stageDisplayMap = {
+  'Gather requirements with user':     'Gather requirements with user',
+  'Select File sourcing option':      'Obtain source files',
+  'Produce Data mapping script':      'Determine solution to Ingest',
+  'Ingest to Azure & DEV':            'Ingest to Tencent & DEV',
+  'UAT on Azure':                     'UAT After ingestion',
+  'Data transformation for PBI':      'Data transformation for PBI',
+  'UAT on PBI':                       'UAT on PBI',
+  'File sourcing automation':         'File sourcing automation',
+  'Done':                             'Done'
+};
 
 const columns = [
   { type: 'string', label: 'Task ID' },
@@ -166,13 +178,17 @@ export default function OverallPage() {
               r.usedBy[0].stages.forEach(stage => {
                 if (!(stage.plannedStart && stage.plannedEnd)) return;
                 const isCurrent = stage.stageName === r.currentStage;
+                // look up the display-friendly name
+                const displayName = stageDisplayMap[stage.stageName] || stage.stageName;
                 rows.push([
                   `STG-${r.reportId}-${stage.stageName.replace(/\s+/g,'_')}`,
-                  stage.stageName,
+                  displayName,
                   isCurrent ? 'Current Stage' : 'Stage',
                   new Date(stage.plannedStart),
                   new Date(stage.plannedEnd),
-                  null,0,`RPT-${r.reportId}`
+                  null,
+                  0,
+                  `RPT-${r.reportId}`
                 ]);
               });
             }
@@ -237,64 +253,105 @@ export default function OverallPage() {
 
       {/* SUMMARY TABLE */}
       <table className="report-table">
-  <thead>
-    <tr>
-      <th>Pending Reports</th>
-      {stageNames.map((s, i) => (
-        <th key={i}>
-          <button className="stage-icon" disabled>
-            {stageIcons[i]}
-          </button>
-          <div className="stage-label">{s}</div>
-        </th>
-      ))}
-    </tr>
-    <tr>
-      <td><strong>Responsible Persons</strong></td>
-      {stageNames.map((s, i) => (
-        <td key={i} className="responsible">{picByStage[s] || '-'}</td>
-      ))}
-    </tr>
-  </thead>
-  <tbody>
-    {/* ── Total row ───────────────────────────────── */}
-    <tr className="total-row">
-      <td><strong>Total ({filteredReports.length})</strong></td>
-      {stageNames.map((stage, idx) => {
-        const stageTotal = filteredReports.filter(r => r.currentStage === stage).length;
-        return (
-          <td key={idx}>
-            <strong>{stageTotal}</strong>
-          </td>
-        );
-      })}
-    </tr>
+      <thead>
+      
+<tr>
+  <th>Pending Reports</th>
 
-    {/* ── BU rows ───────────────────────────────────── */}
-    {Object.entries(buSummary).map(([bu], i) => (
-      <tr key={i}>
-        <td>{bu}</td>
-        {stageNames.map((s, j) => {
-          const count = filteredReports.filter(r =>
-            r.usedBy?.[0]?.buName === bu && r.currentStage === s
-          ).length;
-          return (
-            <td
-              key={j}
-              className={count === 0 ? 'done' : 'clickable-cell'}
-              onClick={() =>
-                navigate(
-                  `/drill/${encodeURIComponent(s)}/${encodeURIComponent(bu)}`
-                )
-              }
-              title={`Drill into ${s}`}
-            >
-              {count}
-            </td>
-          );
-        })}
-      </tr>
+  {stageNames.map((s, i) => (
+    <React.Fragment key={s}>
+      <th>
+        <button className="stage-icon" disabled>
+          {stageIcons[i]}
+        </button>
+        <div className="stage-label">{stageDisplayMap[s] || s}</div>
+      </th>
+
+      {i === 6 && (
+        <th style={{ width: '0.5rem' /* make it narrow */ }}>
+          <button className="stage-icon" disabled>
+            <span style={{ color: 'red', fontSize: '1.25em' }}>●</span>
+          </button>
+          <div className="stage-label">LIVE</div>
+        </th>
+      )}
+    </React.Fragment>
+  ))}
+</tr>
+
+<tr>
+  <td><strong>Responsible Persons</strong></td>
+
+  {stageNames.map((s, i) => (
+    <React.Fragment key={s}>
+      <td className="responsible">{picByStage[s] || '-'}</td>
+      {i === 6 && (
+        <td 
+          style={{ 
+            backgroundColor: 'orange', 
+            padding: 0, 
+            margin: 0 
+          }} 
+        />
+      )}
+    </React.Fragment>
+  ))}
+</tr>
+
+  <tr>
+    <td><strong>Responsible Persons</strong></td>
+
+    {stageNames.map((s, i) => (
+      <React.Fragment key={s}>
+        {/* your normal PIC cell */}
+        <td className="responsible">
+          {picByStage[s] || '-'}
+        </td>
+
+        {/* blank placeholder under GO LIVE */}
+        {i === 6 && <td className="responsible">-</td>}
+      </React.Fragment>
     ))}
+  </tr>
+</thead>
+  <tbody>
+    {/* Total row */}
+{/* Total row */}
+<tr className="total-row">
+  <td><strong>Total ({filteredReports.length})</strong></td>
+  {stageNames.map((stage, idx) => (
+    <React.Fragment key={stage}>
+      <td><strong>{filteredReports.filter(r => r.currentStage === stage).length}</strong></td>
+      {idx === 6 && (
+        <td style={{ backgroundColor: 'orange', padding: 0 }} />
+      )}
+    </React.Fragment>
+  ))}
+</tr>
+
+{/* BU rows */}
+{Object.entries(buSummary).map(([bu], i) => (
+  <tr key={bu}>
+    <td>{bu}</td>
+    {stageNames.map((s, j) => (
+      <React.Fragment key={s}>
+        <td
+          className={filteredReports.filter(r => r.usedBy?.[0]?.buName === bu && r.currentStage === s).length === 0
+            ? 'done' 
+            : 'clickable-cell'}
+          onClick={() =>
+            navigate(`/drill/${encodeURIComponent(s)}/${encodeURIComponent(bu)}`)
+          }
+        >
+          {filteredReports.filter(r => r.usedBy?.[0]?.buName === bu && r.currentStage === s).length}
+        </td>
+        {j === 6 && (
+          <td style={{ backgroundColor: 'orange', padding: 0 }} />
+        )}
+      </React.Fragment>
+    ))}
+  </tr>
+))}
   </tbody>
 </table>
 
@@ -315,8 +372,8 @@ export default function OverallPage() {
                 { color:'#0D47A1', label:'Category' },
                 { color:'#70B6FF', label:'BU' },
                 { color:'#8D8E90', label:'Report' },
-                { color:'#FFB42F', label:'Stage' },
-                { color:'#E53935', label:'Current Stage' },
+                { color:'#34ebb7', label:'Stage' },
+                { color:'#FFB42F', label:'Current Stage' },
                 { color:'#BDBDBD', label:'Today' }
               ]
             },

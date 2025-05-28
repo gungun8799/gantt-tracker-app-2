@@ -15,6 +15,19 @@ export default function DrillPage() {
   const [delayedTaskCount, setDelayedTaskCount] = useState(0);
 
   
+// ─── Add this lookup at the top ────────────────────────
+const stageDisplayMap = {
+  'Gather requirements with user':     'Gather requirements with user',
+  'Select File sourcing option':      'Obtain source files',
+  'Produce Data mapping script':      'Determine solution to Ingest',
+  'Ingest to Azure & DEV':            'Ingest to Tencent & DEV',
+  'UAT on Azure':                     'UAT After ingestion',
+  'Data transformation for PBI':      'Data transformation for PBI',
+  'UAT on PBI':                       'UAT on PBI',
+  'File sourcing automation':         'File sourcing automation',
+  'Done':                             'Done'
+};
+
 
   useEffect(() => {
     const normalize = str => str?.trim().toLowerCase();
@@ -198,7 +211,7 @@ data.forEach(r => {
 
   return (
     <div className="page-container">
-      <h1>📊 Drill Down: {stageName}</h1>
+      <h1>📊 Drill Down: {stageDisplayMap[stageName] || stageName}</h1>
       <button className="btn-back" onClick={() => navigate('/overall')}>
         ← Back to Overall
       </button>
