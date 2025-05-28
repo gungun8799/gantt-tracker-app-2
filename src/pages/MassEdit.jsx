@@ -49,7 +49,7 @@ export default function MassEditPage() {
   
   useEffect(() => {
     // fetch reports
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(r => r.json())
       .then(data => {
         setReports(data);
@@ -57,7 +57,7 @@ export default function MassEditPage() {
       });
 
     // fetch pic‐options
-    fetch(`http://localhost:4000/api/pic-options`)
+    fetch(`${apiUrl}/api/pic-options`)
       .then(r => r.json())
       .then(data => {
         setPicOptions(data);
@@ -66,7 +66,7 @@ export default function MassEditPage() {
 
   useEffect(() => {
     // … your existing get-reports and pic-options …
-    fetch(`http://localhost:4000/api/rawfile-options`)
+    fetch(`${apiUrl}/api/rawfile-options`)
       .then(r => r.json())
       .then(setRawFileOptions)
       .catch(console.error);
@@ -126,7 +126,7 @@ export default function MassEditPage() {
   };
 
   // inside useEffect(...)
-fetch(`http://localhost:4000/api/rawfile-options`)
+fetch(`${apiUrl}/api/rawfile-options`)
 .then(r => r.json())
 .then(data => setRawFileOptions(data));
 // and up top:
@@ -158,7 +158,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
     // 3) persist for next time
     try {
-      await fetch(`http://localhost:4000/api/save-rawfile-option`, {
+      await fetch(`${apiUrl}/api/save-rawfile-option`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: val })
@@ -195,7 +195,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
 
     // 4) persist to server
     try {
-      await fetch(`http://localhost:4000/api/save-pic-option`, {
+      await fetch(`${apiUrl}/api/save-pic-option`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stageId, name: val }),
@@ -213,7 +213,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
     if (mode === 'stage') {
       // ── bulk PIC update ───────────────────────────────────────
-      const res = await fetch(`http://localhost:4000/api/mass-update-pic`, {
+      const res = await fetch(`${apiUrl}/api/mass-update-pic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,7 +247,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     }
   
     // ── bulk Raw-file update ───────────────────────────────────
-    const res2 = await fetch(`http://localhost:4000/api/mass-update-rawfile`, {
+    const res2 = await fetch(`${apiUrl}/api/mass-update-rawfile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
