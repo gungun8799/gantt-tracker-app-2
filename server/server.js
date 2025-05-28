@@ -352,6 +352,27 @@ app.get('/api/pic-options', async (req, res) => {
   }
 });
 
+app.post('/api/mass-update-rawfile', async (req, res) => {
+  const { reportIds, rawFileNames } = req.body;
+  try {
+    await Promise.all(
+      reportIds.map(async reportId => {
+        const docRef = db.collection('reports').doc(reportId);
+        const snap   = await docRef.get();
+        if (!snap.exists) return;
+        const data = snap.data();
+        // overwrite rawFiles array with names only
+        data.rawFiles = rawFileNames.map(name => ({ fileName: name }));
+        await docRef.set(data);
+      })
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ mass-update-rawfile error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // 🔹 POST /api/save-pic-option
 app.post('/api/save-pic-option', async (req, res) => {
   const { name, stageId } = req.body;
