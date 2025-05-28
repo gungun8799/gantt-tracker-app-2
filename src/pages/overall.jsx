@@ -279,24 +279,7 @@ export default function OverallPage() {
   ))}
 </tr>
 
-<tr>
-  <td><strong>Responsible Persons</strong></td>
 
-  {stageNames.map((s, i) => (
-    <React.Fragment key={s}>
-      <td className="responsible">{picByStage[s] || '-'}</td>
-      {i === 6 && (
-        <td 
-          style={{ 
-            backgroundColor: 'orange', 
-            padding: 0, 
-            margin: 0 
-          }} 
-        />
-      )}
-    </React.Fragment>
-  ))}
-</tr>
 
   <tr>
     <td><strong>Responsible Persons</strong></td>
