@@ -266,39 +266,41 @@ export default function MassEditPage() {
         <h3 style={{ margin: 0, marginBottom: '0.75rem' }}>{stageName}</h3>
 
         {/* dropdown + Add button */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.5rem',
-            alignItems: 'center',
-            marginBottom: '0.75rem'
-          }}
-        >
-          <select
-            className="select"
-            value={inputVal}
-            onChange={e =>
-              setNewPicInputs(i => ({
-                ...i,
-                [stageId]: e.target.value
-              }))
-            }
-            style={{ flex: 1 }}
-          >
-            <option value="">-- Select or type PIC --</option>
-            {options.map(p => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <button
-            className="btn-secondary"
-            onClick={() => handleStageAddPIC(stageId)}
-          >
-            ➕ Add
-          </button>
-        </div>
+<div
+  style={{
+    display: 'flex',
+    gap: '0.5rem',
+    alignItems: 'center',
+    marginBottom: '0.75rem'
+  }}
+>
+  {/* free‐text / dropdown combo */}
+  <input
+    className="input"
+    list={`pic-list-${stageId}`}
+    placeholder="Select or type PIC…"
+    value={newPicInputs[stageId] || ''}
+    onChange={e =>
+      setNewPicInputs(inputs => ({
+        ...inputs,
+        [stageId]: e.target.value
+      }))
+    }
+    style={{ flex: 1 }}
+  />
+  <datalist id={`pic-list-${stageId}`}>
+    {options.map(p => (
+      <option key={p} value={p} />
+    ))}
+  </datalist>
+
+  <button
+    className="btn-secondary"
+    onClick={() => handleStageAddPIC(stageId)}
+  >
+    ➕ Add
+  </button>
+</div>
 
         {/* tags of selected PICs */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
