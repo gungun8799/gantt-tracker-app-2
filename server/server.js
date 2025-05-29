@@ -373,6 +373,35 @@ app.post('/api/mass-update-rawfile', async (req, res) => {
   }
 });
 
+app.post('/api/mass-update-timeline', async (req, res) => {
+  const { reportIds, timelineUpdates } = req.body;
+  try {
+    await Promise.all(reportIds.map(async reportId => {
+      const docRef = db.collection('reports').doc(reportId);
+      const doc = await docRef.get();
+      if (!doc.exists) return;
+      const data = doc.data();
+      const newStages = data.usedBy[0].stages.map(s => {
+        const t = timelineUpdates[s.stageId] || {};
+        return {
+          ...s,
+          plannedStart: t.plannedStart ?? s.plannedStart,
+          plannedEnd:   t.plannedEnd   ?? s.plannedEnd,
+          actualStart:  t.actualStart  ?? s.actualStart,
+          actualEnd:    t.actualEnd    ?? s.actualEnd,
+        };
+      });
+      await docRef.update({
+        'usedBy.0.stages': newStages
+      });
+    }));
+    res.json({ success: true });
+  } catch (err) {
+    console.error('❌ mass-update-timeline error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // 🔹 POST /api/save-pic-option
 app.post('/api/save-pic-option', async (req, res) => {
   const { name, stageId } = req.body;

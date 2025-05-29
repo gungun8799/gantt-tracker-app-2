@@ -33,7 +33,7 @@ export default function MassEditPage() {
 
   // what the user has selected in each stage’s dropdown
   const [picUpdates, setPicUpdates] = useState({});
-  
+  const [timelineUpdates, setTimelineUpdates] = useState({});
   const handleRawFileChange = e => {
     const chosen = Array.from(e.target.selectedOptions, o => o.value);
     setRawFileUpdates(chosen);
@@ -116,6 +116,24 @@ export default function MassEditPage() {
       });
       setRawFileUpdates(Array.from(rfSet));
     }
+    // 4️⃣ Seed timelineUpdates
+if (selectedReportIds.length === 0) {
+    setTimelineUpdates({});
+  } else {
+    const tl = {};
+    selectedReportIds.forEach(rid => {
+      const rpt = srcReports.find(r => r.reportId === rid);
+      (rpt?.usedBy?.[0]?.stages || []).forEach(stage => {
+        tl[stage.stageId] = {
+          plannedStart: stage.plannedStart || '',
+          plannedEnd:   stage.plannedEnd   || '',
+          actualStart:  stage.actualStart  || '',
+          actualEnd:    stage.actualEnd    || '',
+        };
+      });
+    });
+    setTimelineUpdates(tl);
+  }
   }, [searchQuery, reports, selectedReportIds]);
   const toggleReport = (reportId) => {
     setSelectedReportIds(ids =>
@@ -125,11 +143,7 @@ export default function MassEditPage() {
     );
   };
 
-  // inside useEffect(...)
-fetch(`${apiUrl}/api/rawfile-options`)
-.then(r => r.json())
-.then(data => setRawFileOptions(data));
-// and up top:
+
 
 const [rawFileUpdates, setRawFileUpdates] = useState([]);      // ← must be an array
 const [newRawFileInputs, setNewRawFileInputs] = useState({});
@@ -212,8 +226,8 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     }
   
     if (mode === 'stage') {
-      // ── bulk PIC update ───────────────────────────────────────
-      const res = await fetch(`${apiUrl}/api/mass-update-pic`, {
+      // ── 1) bulk PIC update ───────────────────────────────────
+      const picRes = await fetch(`${apiUrl}/api/mass-update-pic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,8 +236,18 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
         }),
       });
   
-      if (res.ok) {
-        // merge into local state
+      // ── 2) bulk timeline update ──────────────────────────────
+      const timelineRes = await fetch(`${apiUrl}/api/mass-update-timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportIds: selectedReportIds,
+          timelineUpdates
+        }),
+      });
+  
+      if (picRes.ok && timelineRes.ok) {
+        // ── 3) merge everything into local state ────────────────
         setReports(prev =>
           prev.map(r => {
             if (!selectedReportIds.includes(r.reportId)) return r;
@@ -231,20 +255,34 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
               ...r,
               usedBy: (r.usedBy || []).map(bu => ({
                 ...bu,
-                stages: (bu.stages || []).map(stage => ({
-                  ...stage,
-                  PICs: picUpdates[stage.stageId] ?? stage.PICs
-                }))
+                stages: (bu.stages || []).map(stage => {
+                  const sid = stage.stageId;
+                  return {
+                    ...stage,
+                    PICs: picUpdates[sid]      ?? stage.PICs,
+                    plannedStart: timelineUpdates[sid]?.plannedStart ?? stage.plannedStart,
+                    plannedEnd:   timelineUpdates[sid]?.plannedEnd   ?? stage.plannedEnd,
+                    actualStart:  timelineUpdates[sid]?.actualStart  ?? stage.actualStart,
+                    actualEnd:    timelineUpdates[sid]?.actualEnd    ?? stage.actualEnd,
+                  };
+                })
               }))
             };
           })
         );
-        alert('✅ PICs updated');
+  
+        alert('✅ PICs & timelines updated');
       } else {
-        alert('❌ Failed to update PICs');
+        console.error('PIC error:', await picRes.text());
+        console.error('Timeline error:', await timelineRes.text());
+        alert('❌ Failed to update PICs and/or timelines');
       }
+  
       return;
     }
+  
+    // … your existing Raw-file branch unchanged …
+  
   
     // ── bulk Raw-file update ───────────────────────────────────
     const res2 = await fetch(`${apiUrl}/api/mass-update-rawfile`, {
@@ -306,23 +344,45 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     borderRadius: 4
   }}
 >
-  {(Array.isArray(filteredReports) ? filteredReports : []).map(r => {
-    const hasMissingPIC = r.usedBy?.[0]?.stages.some(
-      stage => !stage.PICs || stage.PICs.length === 0
-    );
-    return (
-      <li key={r.reportId} style={{ padding: '0.5rem' }}>
-        <label style={{ color: hasMissingPIC ? 'red' : 'inherit' }}>
-          <input
-            type="checkbox"
-            checked={selectedReportIds.includes(r.reportId)}
-            onChange={() => toggleReport(r.reportId)}
-          />{' '}
-          {r.reportName} ({r.reportId})
-        </label>
-      </li>
-    )
-  })}
+{(Array.isArray(filteredReports) ? filteredReports : []).map(r => {
+  const stages = r.usedBy?.[0]?.stages || [];
+
+  // 1️⃣ still missing PICs?
+  const hasMissingPIC = stages.some(
+    stage => !stage.PICs || stage.PICs.length === 0
+  );
+
+  // 2️⃣ still missing any of the 4 dates?
+  const hasMissingDates = stages.some(stage =>
+    !stage.plannedStart ||
+    !stage.plannedEnd   ||
+    !stage.actualStart  ||
+    !stage.actualEnd
+  );
+
+  // both PICs and dates complete?
+  const isFullyComplete = !hasMissingPIC && !hasMissingDates;
+
+  // decide color: missing‐PIC always red, then fully complete → green, else default
+  const labelColor = hasMissingPIC
+    ? 'red'
+    : isFullyComplete
+    ? 'green'
+    : 'inherit';
+
+  return (
+    <li key={r.reportId} style={{ padding: '0.5rem' }}>
+      <label style={{ color: labelColor }}>
+        <input
+          type="checkbox"
+          checked={selectedReportIds.includes(r.reportId)}
+          onChange={() => toggleReport(r.reportId)}
+        />{' '}
+        {r.reportName} ({r.reportId})
+      </label>
+    </li>
+  );
+})}
 </ul>
         <div style={{ marginTop: '0.2rem', minHeight: '0.2rem' }}>
           {selectedReportIds.map(id => {
@@ -376,7 +436,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
                     padding: '0.5rem',
                     border: '1px solid #ddd',
                     borderRadius: '10px',
-                    width: '600px',
+                    width: '800px',
                     overflowY: 'auto',
                     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
                   }}
@@ -441,6 +501,36 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
                         </button>
                       </span>
                     ))}
+
+                    {/* ─── Timeline editors ──────────────────────────────── */}
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '0.5rem',
+    marginTop: '0.75rem',
+  }}
+>
+  {['plannedStart','plannedEnd','actualStart','actualEnd'].map(field => (
+    <label key={field} style={{ display:'flex', flexDirection:'column', fontSize:'0.85rem' }}>
+      {field.replace(/([A-Z])/g, ' $1').replace(/^./,str=>str.toUpperCase())}
+      <input
+        type="date"
+        className="input"
+        value={timelineUpdates[stageId]?.[field] || ''}
+        onChange={e =>
+          setTimelineUpdates(tl => ({
+            ...tl,
+            [stageId]: {
+              ...tl[stageId],
+              [field]: e.target.value
+            }
+          }))
+        }
+      />
+    </label>
+  ))}
+</div>
                   </div>
                 </div>
               )
