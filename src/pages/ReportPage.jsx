@@ -88,14 +88,47 @@ const [selectedReports, setSelectedReports] = useState([]);
   ];
 
   const unique = (key) => {
-    const set = new Set();
+    const values = new Set();
+  
     reports.forEach(r => {
-      if (key === 'bu') r.usedBy?.forEach(b => set.add(b.buName));
-      if (key === 'stage') r.usedBy?.[0]?.stages?.forEach(s => set.add(s.stageName));
-      if (key === 'file') r.rawFiles?.forEach(f => set.add(f.fileName));
-      if (key === 'pic') r.usedBy?.[0]?.stages?.forEach(s => s.PICs?.forEach(p => set.add(p)));
+      // normalize usedBy to an array (or empty array)
+      const bus = Array.isArray(r.usedBy) ? r.usedBy : [];
+  
+      if (key === 'bu') {
+        bus.forEach(b => {
+          if (b.buName) values.add(b.buName);
+        });
+      }
+  
+      if (key === 'stage') {
+        bus.forEach(b => {
+          const stages = Array.isArray(b.stages) ? b.stages : [];
+          stages.forEach(s => {
+            if (s.stageName) values.add(s.stageName);
+          });
+        });
+      }
+  
+      if (key === 'file') {
+        const files = Array.isArray(r.rawFiles) ? r.rawFiles : [];
+        files.forEach(f => {
+          if (f.fileName) values.add(f.fileName);
+        });
+      }
+  
+      if (key === 'pic') {
+        bus.forEach(b => {
+          const stages = Array.isArray(b.stages) ? b.stages : [];
+          stages.forEach(s => {
+            if (Array.isArray(s.PICs)) {
+              s.PICs.forEach(p => values.add(p));
+            }
+          });
+        });
+      }
     });
-    return [...set];
+  
+    return Array.from(values);
   };
 
   const fullStageCounts = {};
