@@ -306,7 +306,7 @@ export default function OverallPage() {
     <React.Fragment key={stage}>
       <td><strong>{filteredReports.filter(r => r.currentStage === stage).length}</strong></td>
       {idx === 6 && (
-        <td style={{ backgroundColor: 'yellow', padding: 0 }} />
+        <td style={{ backgroundColor: 'orange', padding: 0 }} />
       )}
     </React.Fragment>
   ))}
@@ -356,7 +356,7 @@ export default function OverallPage() {
                 { color:'#70B6FF', label:'BU' },
                 { color:'#8D8E90', label:'Report' },
                 { color:'#34ebb7', label:'Stage' },
-                { color:'#FFB42F', label:'Current Stage' },
+                { color:'#f2e93d', label:'Current Stage' },
                 { color:'#BDBDBD', label:'Today' }
               ]
             },
