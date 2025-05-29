@@ -72,31 +72,52 @@ export default function DashboardPage() {
     const values = new Set();
   
     reports.forEach(report => {
+      // normalize usedBy to an array
+      const bus = Array.isArray(report.usedBy)
+        ? report.usedBy
+        : report.usedBy ? [report.usedBy] : [];
+  
       switch (keyPath) {
         case 'buName':
-          report.usedBy?.forEach(b => values.add(b.buName));
+          bus.forEach(b => {
+            if (b.buName) values.add(b.buName);
+          });
           break;
   
         case 'stageName':
-          report.usedBy?.forEach(b => {
-            b.stages?.forEach(s => values.add(s.stageName));
+          bus.forEach(b => {
+            if (Array.isArray(b.stages)) {
+              b.stages.forEach(s => {
+                if (s.stageName) values.add(s.stageName);
+              });
+            }
           });
           break;
   
         case 'rawFile':
-          report.rawFiles?.forEach(f => values.add(f.fileName));
+          if (Array.isArray(report.rawFiles)) {
+            report.rawFiles.forEach(f => {
+              if (f.fileName) values.add(f.fileName);
+            });
+          }
           break;
   
         case 'PICs':
-          report.usedBy?.forEach(b => {
-            b.stages?.forEach(s => {
-              s.PICs?.forEach(p => values.add(p));
-            });
+          bus.forEach(b => {
+            if (Array.isArray(b.stages)) {
+              b.stages.forEach(s => {
+                if (Array.isArray(s.PICs)) {
+                  s.PICs.forEach(p => values.add(p));
+                }
+              });
+            }
           });
           break;
   
         case 'businessOwners':
-          report.businessOwners?.forEach(owner => values.add(owner));
+          if (Array.isArray(report.businessOwners)) {
+            report.businessOwners.forEach(owner => values.add(owner));
+          }
           break;
   
         default:
