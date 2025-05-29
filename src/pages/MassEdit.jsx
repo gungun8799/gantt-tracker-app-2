@@ -436,7 +436,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
                     padding: '0.5rem',
                     border: '1px solid #ddd',
                     borderRadius: '10px',
-                    width: '800px',
+                    width: '1000px',
                     overflowY: 'auto',
                     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
                   }}
