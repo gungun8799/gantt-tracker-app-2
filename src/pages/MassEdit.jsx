@@ -178,17 +178,34 @@ export default function MassEditPage() {
       setPicUpdates(initialPic);
     }
   
-    // 3️⃣ Seed rawFileUpdates
-    if (selectedReportIds.length === 0) {
-      setRawFileUpdates([]);
-    } else {
-      const rfSet = new Set();
-      selectedReportIds.forEach(rid => {
-        const rpt = srcReports.find(r => r.reportId === rid);
-        rpt?.rawFiles?.forEach(f => rfSet.add(f.fileName));
+    // ── 3️⃣ Seed rawFileUpdates as full objects
+if (selectedReportIds.length === 0) {
+    setRawFileUpdates([]);
+  } else {
+    // collect {fileName, systemName, systemOwner} from each report
+    const entries = [];
+    selectedReportIds.forEach(rid => {
+      const rpt = srcReports.find(r => r.reportId === rid);
+      rpt?.rawFiles?.forEach(f => {
+        entries.push({
+          fileName:     f.fileName,
+          systemName:   f.systemName   || '',
+          systemOwner:  f.systemOwner  || ''
+        });
       });
-      setRawFileUpdates(Array.from(rfSet));
+    });
+    // optionally de-dup identical entries:
+    const unique = [];
+    const seen = new Set();
+    for (let e of entries) {
+      const key = `${e.fileName}||${e.systemName}||${e.systemOwner}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(e);
+      }
     }
+    setRawFileUpdates(unique);
+  }
     // 4️⃣ Seed timelineUpdates
 if (selectedReportIds.length === 0) {
     setTimelineUpdates({});
@@ -396,7 +413,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reportIds: selectedReportIds,
-          rawFileNames: rawFileUpdates.map(e => e.fileName)
+          rawFileEntries: rawFileUpdates    // <-- full objects array
         }),
       });
   
