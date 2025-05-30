@@ -73,77 +73,38 @@ export default function MassEditPage() {
   
   useEffect(() => {
     // ── Reports ───────────────────────────────────────────────
-    const cachedReports = loadCache(REPORTS_CACHE_KEY);
-    if (cachedReports) {
-      setReports(cachedReports);
-      setFilteredReports(cachedReports);
-    } else {
-      fetch(`${apiUrl}/api/get-reports`)
-        .then(r => r.json())
-        .then(data => {
-          setReports(data);
-          setFilteredReports(data);
-          saveCache(REPORTS_CACHE_KEY, data);
-        })
-        .catch(console.error);
-    }
-
+    fetch(`http://localhost:4000/api/get-reports`)
+      .then(res => res.json())
+      .then(data => {
+        setReports(data);
+        setFilteredReports(data);
+      })
+      .catch(console.error);
+  
     // ── PIC options ──────────────────────────────────────────
-    const cachedPics = loadCache(PIC_OPTIONS_CACHE_KEY);
-    if (cachedPics) {
-      setPicOptions(cachedPics);
-    } else {
-      fetch(`${apiUrl}/api/pic-options`)
-        .then(r => r.json())
-        .then(data => {
-          setPicOptions(data);
-          saveCache(PIC_OPTIONS_CACHE_KEY, data);
-        })
-        .catch(console.error);
-    }
-
-      // ── Raw-file options ─────────────────────────────────────
-  const cachedRaw = loadCache(RAWFILES_CACHE_KEY);
-  if (cachedRaw) {
-    setRawFileOptions(cachedRaw);
-  } else {
-    fetch(`${apiUrl}/api/rawfile-options`)
-      .then(r => r.json())
-      .then(data => {
-        setRawFileOptions(data);
-        saveCache(RAWFILES_CACHE_KEY, data);
-      })
+    fetch(`http://localhost:4000/api/pic-options`)
+      .then(res => res.json())
+      .then(setPicOptions)
       .catch(console.error);
-  }
-
-  // ── System Names ─────────────────────────────────────────
-  const cachedSysNames = loadCache(SYSNAMES_CACHE_KEY);
-  if (cachedSysNames) {
-    setSystemNames(cachedSysNames);
-  } else {
-    fetch(`${apiUrl}/api/system-names`)
-      .then(r => r.json())
-      .then(data => {
-        setSystemNames(data);
-        saveCache(SYSNAMES_CACHE_KEY, data);
-      })
+  
+    // ── Raw-file options ─────────────────────────────────────
+    fetch(`http://localhost:4000/api/rawfile-options`)
+      .then(res => res.json())
+      .then(setRawFileOptions)
       .catch(console.error);
-  }
-
-  // ── System Owners ────────────────────────────────────────
-  const cachedSysOwners = loadCache(SYSOWNERS_CACHE_KEY);
-  if (cachedSysOwners) {
-    setSystemOwners(cachedSysOwners);
-  } else {
-    fetch(`${apiUrl}/api/system-owners`)
-      .then(r => r.json())
-      .then(data => {
-        setSystemOwners(data);
-        saveCache(SYSOWNERS_CACHE_KEY, data);
-      })
+  
+    // ── System Names ─────────────────────────────────────────
+    fetch(`http://localhost:4000/api/system-names`)
+      .then(res => res.json())
+      .then(setSystemNames)
       .catch(console.error);
-  }
-}, []);
+  
+    // ── System Owners ────────────────────────────────────────
+    fetch(`http://localhost:4000/api/system-owners`)
+      .then(res => res.json())
+      .then(setSystemOwners)
+      .catch(console.error);
+  }, []);
 
   // filter reports list by name or id
   useEffect(() => {
@@ -284,17 +245,17 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     // 4️⃣ persist
     try {
       await Promise.all([
-        fetch(`${apiUrl}/api/save-rawfile-option`, {
+        fetch(`http://localhost:4000/api/save-rawfile-option`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: file })
         }),
-        fetch(`${apiUrl}/api/save-system-name`, {
+        fetch(`http://localhost:4000/api/save-system-name`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: sys })
         }),
-        fetch(`${apiUrl}/api/save-system-owner`, {
+        fetch(`http://localhost:4000/api/save-system-owner`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: owner })
@@ -332,7 +293,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
 
     // 4) persist to server
     try {
-      await fetch(`${apiUrl}/api/save-pic-option`, {
+      await fetch(`http://localhost:4000/api/save-pic-option`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stageId, name: val }),
@@ -350,7 +311,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
     if (mode === 'stage') {
       // ── 1) bulk PIC update ───────────────────────────────────
-      const picRes = await fetch(`${apiUrl}/api/mass-update-pic`, {
+      const picRes = await fetch(`http://localhost:4000/api/mass-update-pic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -360,7 +321,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       });
   
       // ── 2) bulk timeline update ──────────────────────────────
-      const timelineRes = await fetch(`${apiUrl}/api/mass-update-timeline`, {
+      const timelineRes = await fetch(`http://localhost:4000/api/mass-update-timeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -408,7 +369,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
   
     // ── bulk Raw-file update ───────────────────────────────────
-    const res2 = await fetch(`${apiUrl}/api/mass-update-rawfile`, {
+    const res2 = await fetch(`http://localhost:4000/api/mass-update-rawfile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -506,20 +467,62 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   );
 })}
 </ul>
-        <div style={{ marginTop: '0.2rem', minHeight: '0.2rem' }}>
-          {selectedReportIds.map(id => {
-            const r = reports.find(r => r.reportId === id)
-            return (
-              <span
-                key={id}
-                className="selected-report-tag"
-                style={{ marginRight: 4 }}
-              >
-                {r?.reportName || id}
-              </span>
-            )
-          })}
-        </div>
+<div
+  style={{
+    marginTop: '0.2rem',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.5rem',
+    alignItems: 'center'
+  }}
+>
+  {/* Clear All */}
+  {selectedReportIds.length > 0 && (
+    <button
+      className="btn-secondary-clear"
+      onClick={() => setSelectedReportIds([])}
+      style={{ marginRight: '1rem' }}
+    >
+      ❌ Clear All
+    </button>
+  )}
+
+  {/* Individual tags with “×” */}
+  {selectedReportIds.map(id => {
+    const r = reports.find(r => r.reportId === id)
+    return (
+      <span
+        key={id}
+        className="selected-report-tag"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#e0e0e0',
+          borderRadius: '6px',
+          padding: '4px 8px'
+        }}
+      >
+        <button
+          onClick={() => toggleReport(id)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'red',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            marginRight: '0.5rem',
+            padding: 0
+          }}
+        >
+          ×
+        </button>
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {r?.reportName || id}
+        </span>
+      </span>
+    )
+  })}
+</div>
       </div>
   
       {/* ─── Right: toggle + per‐stage / per‐rawfile edit ───────────── */}
@@ -683,7 +686,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newRawFileInput}
       onChange={e => setNewRawFileInput(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/rawfile-options`)
+        fetch(`http://localhost:4000/api/rawfile-options`)
           .then(res => res.json())
           .then(data => setRawFileOptions(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
@@ -702,7 +705,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newSystemName}
       onChange={e => setNewSystemName(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/system-names`)
+        fetch(`http://localhost:4000/api/system-names`)
           .then(res => res.json())
           .then(data => setSystemNames(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
@@ -721,7 +724,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newSystemOwner}
       onChange={e => setNewSystemOwner(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/system-owners`)
+        fetch(`http://localhost:4000/api/system-owners`)
           .then(res => res.json())
           .then(data => setSystemOwners(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
