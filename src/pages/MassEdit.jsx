@@ -21,9 +21,16 @@ const stageTemplate = [
 
 
 // helper to load & save JSON
+// helper to load & save JSON
 const loadCache = key => {
-    try { return JSON.parse(localStorage.getItem(key)) || null; }
-    catch { return null; }
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const { data } = JSON.parse(raw);
+      return data;
+    } catch {
+      return null;
+    }
   };
   const saveCache = (key, data) => {
     localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
