@@ -6,6 +6,9 @@ const apiUrl = process.env.REACT_APP_BACKEND_URL;
 const REPORTS_CACHE_KEY = 'massedit_reports';
 const PIC_OPTIONS_CACHE_KEY = 'massedit_picOptions';
 const RAWFILES_CACHE_KEY    = 'massedit_rawFileOptions';
+const SYSNAMES_CACHE_KEY  = 'massedit_systemNames';
+const SYSOWNERS_CACHE_KEY = 'massedit_systemOwners';
+
 // your stage names (and IDs) must match what the backend expects
 const stageTemplate = [
   'Gather requirements with user',
@@ -63,47 +66,81 @@ export default function MassEditPage() {
     }));
   };
 
+  const [systemNames,    setSystemNames]    = useState([]);
+  const [systemOwners,   setSystemOwners]   = useState([]);
+  const [newSystemName,  setNewSystemName]  = useState('');
+  const [newSystemOwner, setNewSystemOwner] = useState('');
+
   
   useEffect(() => {
-    // Reports
+    // ── Reports ───────────────────────────────────────────────
     const cachedReports = loadCache(REPORTS_CACHE_KEY);
     if (cachedReports) {
       setReports(cachedReports);
       setFilteredReports(cachedReports);
     } else {
-      fetch(`${apiUrl}/api/get-reports`)
+      fetch(`http://localhost:4000/api/get-reports`)
         .then(r => r.json())
         .then(data => {
           setReports(data);
           setFilteredReports(data);
           saveCache(REPORTS_CACHE_KEY, data);
-        });
+        })
+        .catch(console.error);
     }
-  
-    // PIC options
+
+    // ── PIC options ──────────────────────────────────────────
     const cachedPics = loadCache(PIC_OPTIONS_CACHE_KEY);
     if (cachedPics) {
       setPicOptions(cachedPics);
     } else {
-      fetch(`${apiUrl}/api/pic-options`)
+      fetch(`http://localhost:4000/api/pic-options`)
         .then(r => r.json())
         .then(data => {
           setPicOptions(data);
           saveCache(PIC_OPTIONS_CACHE_KEY, data);
-        });
+        })
+        .catch(console.error);
     }
-  }, []);
 
-  useEffect(() => {
-    const cached = loadCache(RAWFILES_CACHE_KEY);
-    if (cached) {
-      setRawFileOptions(cached);
+    // ── Raw-file options ─────────────────────────────────────
+    const cachedRaw = loadCache(RAWFILES_CACHE_KEY);
+    if (cachedRaw) {
+      setRawFileOptions(cachedRaw);
     } else {
-      fetch(`${apiUrl}/api/rawfile-options`)
+      fetch(`http://localhost:4000/api/rawfile-options`)
         .then(r => r.json())
         .then(data => {
           setRawFileOptions(data);
           saveCache(RAWFILES_CACHE_KEY, data);
+        })
+        .catch(console.error);
+    }
+
+    // ── System Names ─────────────────────────────────────────
+    const cachedSysNames = loadCache(SYSNAMES_CACHE_KEY);
+    if (cachedSysNames) {
+      setSystemNames(cachedSysNames);
+    } else {
+      fetch(`http://localhost:4000/api/system-names`)
+        .then(r => r.json())
+        .then(data => {
+          setSystemNames(data);
+          saveCache(SYSNAMES_CACHE_KEY, data);
+        })
+        .catch(console.error);
+    }
+
+    // ── System Owners ────────────────────────────────────────
+    const cachedSysOwners = loadCache(SYSOWNERS_CACHE_KEY);
+    if (cachedSysOwners) {
+      setSystemOwners(cachedSysOwners);
+    } else {
+      fetch(`http://localhost:4000/api/system-owners`)
+        .then(r => r.json())
+        .then(data => {
+          setSystemOwners(data);
+          saveCache(SYSOWNERS_CACHE_KEY, data);
         })
         .catch(console.error);
     }
@@ -192,30 +229,51 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     setPicUpdates(u => ({ ...u, [stageId]: selected }));
   };
   const handleStageAddRawFile = async () => {
-    const val = newRawFileInput.trim();
-    if (!val) return;
+    const file  = newRawFileInput.trim();
+    const sys   = newSystemName.trim();
+    const owner = newSystemOwner.trim();
+    if (!file || !sys || !owner) return;
   
-    // 1) add to local dropdown
+    // 1) update local dropdowns & selections
     setRawFileOptions(opts =>
-      opts.includes(val) ? opts : [...opts, val]
+      opts.includes(file) ? opts : [...opts, file]
     );
-  
-    // 2) add to this selection
     setRawFileUpdates(u =>
-      u.includes(val) ? u : [...u, val]
+      u.includes(file) ? u : [...u, file]
+    );
+    setSystemNames(list =>
+      list.includes(sys) ? list : [...list, sys]
+    );
+    setSystemOwners(list =>
+      list.includes(owner) ? list : [...list, owner]
     );
   
+    // 2) clear inputs
     setNewRawFileInput('');
+    setNewSystemName('');
+    setNewSystemOwner('');
   
-    // 3) persist for next time
+    // 3) persist all three
     try {
-      await fetch(`${apiUrl}/api/save-rawfile-option`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: val })
-      });
+      await Promise.all([
+        fetch(`http://localhost:4000/api/save-rawfile-option`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: file })
+        }),
+        fetch(`http://localhost:4000/api/save-system-name`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: sys })
+        }),
+        fetch(`http://localhost:4000/api/save-system-owner`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: owner })
+        })
+      ]);
     } catch (err) {
-      console.error('Failed to save raw file option:', err);
+      console.error('Failed to save raw file / system / owner:', err);
     }
   };
   const handleStageAddPIC = async (stageId) => {
@@ -246,7 +304,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
 
     // 4) persist to server
     try {
-      await fetch(`${apiUrl}/api/save-pic-option`, {
+      await fetch(`http://localhost:4000/api/save-pic-option`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stageId, name: val }),
@@ -264,7 +322,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
     if (mode === 'stage') {
       // ── 1) bulk PIC update ───────────────────────────────────
-      const picRes = await fetch(`${apiUrl}/api/mass-update-pic`, {
+      const picRes = await fetch(`http://localhost:4000/api/mass-update-pic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -274,7 +332,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       });
   
       // ── 2) bulk timeline update ──────────────────────────────
-      const timelineRes = await fetch(`${apiUrl}/api/mass-update-timeline`, {
+      const timelineRes = await fetch(`http://localhost:4000/api/mass-update-timeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -322,7 +380,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
   
     // ── bulk Raw-file update ───────────────────────────────────
-    const res2 = await fetch(`${apiUrl}/api/mass-update-rawfile`, {
+    const res2 = await fetch(`http://localhost:4000/api/mass-update-rawfile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -575,78 +633,108 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
         ) : (
             
           <>
-            <h2 style={{ marginBottom: '0.5rem' }}>
-      Bulk Edit Raw Files by Report
-    </h2>
+         <>
+  <h2 style={{ marginBottom: '0.5rem' }}>
+    Bulk Edit Raw Files by Report
+  </h2>
 
-    {/* fetch options on focus */}
-    <div
-      style={{
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'center',
-        marginBottom: '0.75rem'
+  {/* fetch options on focus */}
+  <div
+    style={{
+      display: 'flex',
+      gap: '0.5rem',
+      alignItems: 'center',
+      marginBottom: '0.75rem'
+    }}
+  >
+    {/* Raw File */}
+    <input
+      className="input"
+      list="rawfile-list"
+      placeholder="Select or type Raw File…"
+      value={newRawFileInput}
+      onChange={e => setNewRawFileInput(e.target.value)}
+      onFocus={() => {
+        fetch(`http://localhost:4000/api/rawfile-options`)
+          .then(res => res.json())
+          .then(data => setRawFileOptions(Array.isArray(data) ? data : data.values || []))
+          .catch(console.error);
       }}
+      style={{ flex: 1 }}
+    />
+    <datalist id="rawfile-list">
+      {rawFileOptions.map(f => <option key={f} value={f} />)}
+    </datalist>
+
+    {/* System Name */}
+    <input
+      className="input"
+      list="system-list"
+      placeholder="Select or type System…"
+      value={newSystemName}
+      onChange={e => setNewSystemName(e.target.value)}
+      onFocus={() => {
+        fetch(`http://localhost:4000/api/system-names`)
+          .then(res => res.json())
+          .then(data => setSystemNames(Array.isArray(data) ? data : data.values || []))
+          .catch(console.error);
+      }}
+      style={{ flex: 1 }}
+    />
+    <datalist id="system-list">
+      {systemNames.map(s => <option key={s} value={s} />)}
+    </datalist>
+
+    {/* System Owner */}
+    <input
+      className="input"
+      list="owner-list"
+      placeholder="Select or type System Owner…"
+      value={newSystemOwner}
+      onChange={e => setNewSystemOwner(e.target.value)}
+      onFocus={() => {
+        fetch(`http://localhost:4000/api/system-owners`)
+          .then(res => res.json())
+          .then(data => setSystemOwners(Array.isArray(data) ? data : data.values || []))
+          .catch(console.error);
+      }}
+      style={{ flex: 1 }}
+    />
+    <datalist id="owner-list">
+      {systemOwners.map(o => <option key={o} value={o} />)}
+    </datalist>
+
+    <button
+      className="btn-secondary"
+      onClick={handleStageAddRawFile}
     >
-      <input
-  className="input"
-  list="rawfile-list"
-  placeholder="Select or type Raw File…"
-  value={newRawFileInput}
-  onChange={e => setNewRawFileInput(e.target.value)}
-  onFocus={() => {
-    // refresh in case new files were added
-    fetch(`${apiUrl}/api/rawfile-options`)
-      .then(res => res.json())
-      .then(data => {
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data.values)
-          ? data.values
-          : [];
-        setRawFileOptions(list);
-      })
-      .catch(console.error);
-  }}
-  style={{ flex: 1 }}
-/>
-<datalist id="rawfile-list">
-  {/* guard .map in case rawFileOptions isn't an array for some reason */}
-  {(Array.isArray(rawFileOptions) ? rawFileOptions : []).map(f => (
-    <option key={f} value={f} />
-  ))}
-</datalist>
+      ➕ Add
+    </button>
+  </div>
 
-      <button
-        className="btn-secondary"
-        onClick={handleStageAddRawFile}
-      >
-        ➕ Add
-      </button>
-    </div>
-
-    {/* show tags of selected raw files */}
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-      {rawFileUpdates.map(f => (
-        <span key={f} className="selected-report-tag">
-          {f}
-          <button
-            style={{
-              background: 'transparent',
-              border: 'none',
-              marginLeft: '0.25rem',
-              cursor: 'pointer',
-              color: 'red'
-            }}
-            onClick={() =>
-              setRawFileUpdates(list => list.filter(x => x !== f))
-            }
-          >
-            ×
-          </button>
-        </span>
-      ))}
-    </div>
+  {/* show tags of selected raw files with their system & owner */}
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+    {rawFileUpdates.map(({ fileName, systemName, systemOwner }) => (
+      <span key={fileName} className="selected-report-tag">
+        {fileName} — {systemName} / {systemOwner}
+        <button
+          style={{
+            background: 'transparent',
+            border: 'none',
+            marginLeft: '0.25rem',
+            cursor: 'pointer',
+            color: 'red'
+          }}
+          onClick={() =>
+            setRawFileUpdates(list => list.filter(x => x.fileName !== fileName))
+          }
+        >
+          ×
+        </button>
+      </span>
+    ))}
+  </div>
+</>
   </>
 )}
   
