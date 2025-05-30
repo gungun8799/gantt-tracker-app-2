@@ -3,7 +3,9 @@ import React, { useEffect, useState } from 'react';
 import '../styles/Pages.css';
 
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
-
+const REPORTS_CACHE_KEY = 'massedit_reports';
+const PIC_OPTIONS_CACHE_KEY = 'massedit_picOptions';
+const RAWFILES_CACHE_KEY    = 'massedit_rawFileOptions';
 // your stage names (and IDs) must match what the backend expects
 const stageTemplate = [
   'Gather requirements with user',
@@ -18,7 +20,14 @@ const stageTemplate = [
 ];
 
 
-
+// helper to load & save JSON
+const loadCache = key => {
+    try { return JSON.parse(localStorage.getItem(key)) || null; }
+    catch { return null; }
+  };
+  const saveCache = (key, data) => {
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+  };
   
 
 export default function MassEditPage() {
@@ -46,30 +55,51 @@ export default function MassEditPage() {
       [stageId]: (u[stageId] || []).filter(p => p !== name)
     }));
   };
+
   
   useEffect(() => {
-    // fetch reports
-    fetch(`${apiUrl}/api/get-reports`)
-      .then(r => r.json())
-      .then(data => {
-        setReports(data);
-        setFilteredReports(data);
-      });
-
-    // fetch pic‐options
-    fetch(`${apiUrl}/api/pic-options`)
-      .then(r => r.json())
-      .then(data => {
-        setPicOptions(data);
-      });
+    // Reports
+    const cachedReports = loadCache(REPORTS_CACHE_KEY);
+    if (cachedReports) {
+      setReports(cachedReports);
+      setFilteredReports(cachedReports);
+    } else {
+      fetch(`${apiUrl}/api/get-reports`)
+        .then(r => r.json())
+        .then(data => {
+          setReports(data);
+          setFilteredReports(data);
+          saveCache(REPORTS_CACHE_KEY, data);
+        });
+    }
+  
+    // PIC options
+    const cachedPics = loadCache(PIC_OPTIONS_CACHE_KEY);
+    if (cachedPics) {
+      setPicOptions(cachedPics);
+    } else {
+      fetch(`${apiUrl}/api/pic-options`)
+        .then(r => r.json())
+        .then(data => {
+          setPicOptions(data);
+          saveCache(PIC_OPTIONS_CACHE_KEY, data);
+        });
+    }
   }, []);
 
   useEffect(() => {
-    // … your existing get-reports and pic-options …
-    fetch(`${apiUrl}/api/rawfile-options`)
-      .then(r => r.json())
-      .then(setRawFileOptions)
-      .catch(console.error);
+    const cached = loadCache(RAWFILES_CACHE_KEY);
+    if (cached) {
+      setRawFileOptions(cached);
+    } else {
+      fetch(`${apiUrl}/api/rawfile-options`)
+        .then(r => r.json())
+        .then(data => {
+          setRawFileOptions(data);
+          saveCache(RAWFILES_CACHE_KEY, data);
+        })
+        .catch(console.error);
+    }
   }, []);
 
   // filter reports list by name or id
@@ -355,9 +385,8 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   // 2️⃣ still missing any of the 4 dates?
   const hasMissingDates = stages.some(stage =>
     !stage.plannedStart ||
-    !stage.plannedEnd   ||
-    !stage.actualStart  ||
-    !stage.actualEnd
+    !stage.plannedEnd   
+
   );
 
   // both PICs and dates complete?
