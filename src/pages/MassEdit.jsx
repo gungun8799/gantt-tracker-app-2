@@ -712,28 +712,41 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     </button>
   </div>
 
-  {/* show tags of selected raw files with their system & owner */}
-  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-    {rawFileUpdates.map(({ fileName, systemName, systemOwner }) => (
-      <span key={fileName} className="selected-report-tag">
-        {fileName} — {systemName} / {systemOwner}
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            marginLeft: '0.25rem',
-            cursor: 'pointer',
-            color: 'red'
-          }}
-          onClick={() =>
-            setRawFileUpdates(list => list.filter(x => x.fileName !== fileName))
-          }
-        >
-          ×
-        </button>
-      </span>
-    ))}
-  </div>
+  {/* show tags of selected raw files */}
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+  {rawFileUpdates.map(entry => (
+    <span
+      key={`${entry.fileName}-${entry.systemName}-${entry.systemOwner}`}
+      className="selected-report-tag"
+    >
+      {/* display each field */}
+      {entry.fileName} — {entry.systemName} / {entry.systemOwner}
+      <button
+        style={{
+          background: 'transparent',
+          border: 'none',
+          marginLeft: '0.25rem',
+          cursor: 'pointer',
+          color: 'red'
+        }}
+        onClick={() =>
+          setRawFileUpdates(list =>
+            list.filter(
+              x =>
+                !(
+                  x.fileName === entry.fileName &&
+                  x.systemName === entry.systemName &&
+                  x.systemOwner === entry.systemOwner
+                )
+            )
+          )
+        }
+      >
+        ×
+      </button>
+    </span>
+  ))}
+</div>
 </>
   </>
 )}
