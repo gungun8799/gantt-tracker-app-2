@@ -352,17 +352,28 @@ app.get('/api/pic-options', async (req, res) => {
   }
 });
 
+// 🔹 POST /api/mass-update-rawfile
 app.post('/api/mass-update-rawfile', async (req, res) => {
-  const { reportIds, rawFileNames } = req.body;
+  const { reportIds, rawFileEntries } = req.body;
+  if (!Array.isArray(reportIds) || !Array.isArray(rawFileEntries)) {
+    return res.status(400).json({ error: 'Invalid payload' });
+  }
+
   try {
     await Promise.all(
       reportIds.map(async reportId => {
         const docRef = db.collection('reports').doc(reportId);
         const snap   = await docRef.get();
         if (!snap.exists) return;
+
         const data = snap.data();
-        // overwrite rawFiles array with names only
-        data.rawFiles = rawFileNames.map(name => ({ fileName: name }));
+        // Overwrite rawFiles with the richer objects
+        data.rawFiles = rawFileEntries.map(({ fileName, systemName, systemOwner }) => ({
+          fileName,
+          systemName,
+          systemOwner
+        }));
+
         await docRef.set(data);
       })
     );
