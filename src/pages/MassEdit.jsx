@@ -49,7 +49,10 @@ export default function MassEditPage() {
   const [rawFileOptions, setRawFileOptions] = useState([]);
   // picOptions per stage, initialised from /api/pic-options
   const [picOptions, setPicOptions] = useState({});
-
+  const [systemNames, setSystemNames] = useState([]);
+  const [systemOwners, setSystemOwners] = useState([]);
+  const [newSystemName,  setNewSystemName]  = useState('');
+  const [newSystemOwner, setNewSystemOwner] = useState('');
   // what the user has selected in each stage’s dropdown
   const [picUpdates, setPicUpdates] = useState({});
   const [timelineUpdates, setTimelineUpdates] = useState({});
@@ -66,10 +69,6 @@ export default function MassEditPage() {
     }));
   };
 
-  const [systemNames,    setSystemNames]    = useState([]);
-  const [systemOwners,   setSystemOwners]   = useState([]);
-  const [newSystemName,  setNewSystemName]  = useState('');
-  const [newSystemOwner, setNewSystemOwner] = useState('');
 
   
   useEffect(() => {
@@ -79,7 +78,7 @@ export default function MassEditPage() {
       setReports(cachedReports);
       setFilteredReports(cachedReports);
     } else {
-      fetch(`${apiUrl}/api/get-reports`)
+      fetch(`http://localhost:4000/api/get-reports`)
         .then(r => r.json())
         .then(data => {
           setReports(data);
@@ -94,7 +93,7 @@ export default function MassEditPage() {
     if (cachedPics) {
       setPicOptions(cachedPics);
     } else {
-      fetch(`${apiUrl}/api/pic-options`)
+      fetch(`http://localhost:4000/api/pic-options`)
         .then(r => r.json())
         .then(data => {
           setPicOptions(data);
@@ -103,48 +102,48 @@ export default function MassEditPage() {
         .catch(console.error);
     }
 
-    // ── Raw-file options ─────────────────────────────────────
-    const cachedRaw = loadCache(RAWFILES_CACHE_KEY);
-    if (cachedRaw) {
-      setRawFileOptions(cachedRaw);
-    } else {
-      fetch(`${apiUrl}/api/rawfile-options`)
-        .then(r => r.json())
-        .then(data => {
-          setRawFileOptions(data);
-          saveCache(RAWFILES_CACHE_KEY, data);
-        })
-        .catch(console.error);
-    }
+      // ── Raw-file options ─────────────────────────────────────
+  const cachedRaw = loadCache(RAWFILES_CACHE_KEY);
+  if (cachedRaw) {
+    setRawFileOptions(cachedRaw);
+  } else {
+    fetch(`http://localhost:4000/api/rawfile-options`)
+      .then(r => r.json())
+      .then(data => {
+        setRawFileOptions(data);
+        saveCache(RAWFILES_CACHE_KEY, data);
+      })
+      .catch(console.error);
+  }
 
-    // ── System Names ─────────────────────────────────────────
-    const cachedSysNames = loadCache(SYSNAMES_CACHE_KEY);
-    if (cachedSysNames) {
-      setSystemNames(cachedSysNames);
-    } else {
-      fetch(`${apiUrl}/api/system-names`)
-        .then(r => r.json())
-        .then(data => {
-          setSystemNames(data);
-          saveCache(SYSNAMES_CACHE_KEY, data);
-        })
-        .catch(console.error);
-    }
+  // ── System Names ─────────────────────────────────────────
+  const cachedSysNames = loadCache(SYSNAMES_CACHE_KEY);
+  if (cachedSysNames) {
+    setSystemNames(cachedSysNames);
+  } else {
+    fetch(`http://localhost:4000/api/system-names`)
+      .then(r => r.json())
+      .then(data => {
+        setSystemNames(data);
+        saveCache(SYSNAMES_CACHE_KEY, data);
+      })
+      .catch(console.error);
+  }
 
-    // ── System Owners ────────────────────────────────────────
-    const cachedSysOwners = loadCache(SYSOWNERS_CACHE_KEY);
-    if (cachedSysOwners) {
-      setSystemOwners(cachedSysOwners);
-    } else {
-      fetch(`${apiUrl}/api/system-owners`)
-        .then(r => r.json())
-        .then(data => {
-          setSystemOwners(data);
-          saveCache(SYSOWNERS_CACHE_KEY, data);
-        })
-        .catch(console.error);
-    }
-  }, []);
+  // ── System Owners ────────────────────────────────────────
+  const cachedSysOwners = loadCache(SYSOWNERS_CACHE_KEY);
+  if (cachedSysOwners) {
+    setSystemOwners(cachedSysOwners);
+  } else {
+    fetch(`http://localhost:4000/api/system-owners`)
+      .then(r => r.json())
+      .then(data => {
+        setSystemOwners(data);
+        saveCache(SYSOWNERS_CACHE_KEY, data);
+      })
+      .catch(console.error);
+  }
+}, []);
 
   // filter reports list by name or id
   useEffect(() => {
@@ -232,14 +231,26 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     const file  = newRawFileInput.trim();
     const sys   = newSystemName.trim();
     const owner = newSystemOwner.trim();
-    if (!file || !sys || !owner) return;
+    if (!file || !sys || !owner) {
+      return; // or alert("Fill all three")
+    }
   
-    // 1) update local dropdowns & selections
+    const newEntry = { fileName: file, systemName: sys, systemOwner: owner };
+  
+    // 1️⃣ update local selection list, avoiding duplicates
+    setRawFileUpdates(list => {
+      const exists = list.some(
+        e =>
+          e.fileName    === newEntry.fileName &&
+          e.systemName  === newEntry.systemName &&
+          e.systemOwner === newEntry.systemOwner
+      );
+      return exists ? list : [...list, newEntry];
+    });
+  
+    // 2️⃣ ensure dropdown options exist
     setRawFileOptions(opts =>
       opts.includes(file) ? opts : [...opts, file]
-    );
-    setRawFileUpdates(u =>
-      u.includes(file) ? u : [...u, file]
     );
     setSystemNames(list =>
       list.includes(sys) ? list : [...list, sys]
@@ -248,32 +259,32 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       list.includes(owner) ? list : [...list, owner]
     );
   
-    // 2) clear inputs
+    // 3️⃣ clear inputs
     setNewRawFileInput('');
     setNewSystemName('');
     setNewSystemOwner('');
   
-    // 3) persist all three
+    // 4️⃣ persist
     try {
       await Promise.all([
-        fetch(`${apiUrl}/api/save-rawfile-option`, {
+        fetch(`http://localhost:4000/api/save-rawfile-option`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: file })
         }),
-        fetch(`${apiUrl}/api/save-system-name`, {
+        fetch(`http://localhost:4000/api/save-system-name`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: sys })
         }),
-        fetch(`${apiUrl}/api/save-system-owner`, {
+        fetch(`http://localhost:4000/api/save-system-owner`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: owner })
         })
       ]);
     } catch (err) {
-      console.error('Failed to save raw file / system / owner:', err);
+      console.error('Failed to save raw file, system name, or system owner:', err);
     }
   };
   const handleStageAddPIC = async (stageId) => {
@@ -304,7 +315,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
 
     // 4) persist to server
     try {
-      await fetch(`${apiUrl}/api/save-pic-option`, {
+      await fetch(`http://localhost:4000/api/save-pic-option`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stageId, name: val }),
@@ -322,7 +333,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
     if (mode === 'stage') {
       // ── 1) bulk PIC update ───────────────────────────────────
-      const picRes = await fetch(`${apiUrl}/api/mass-update-pic`, {
+      const picRes = await fetch(`http://localhost:4000/api/mass-update-pic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -332,7 +343,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       });
   
       // ── 2) bulk timeline update ──────────────────────────────
-      const timelineRes = await fetch(`${apiUrl}/api/mass-update-timeline`, {
+      const timelineRes = await fetch(`http://localhost:4000/api/mass-update-timeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -380,14 +391,14 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
   
     // ── bulk Raw-file update ───────────────────────────────────
-    const res2 = await fetch(`${apiUrl}/api/mass-update-rawfile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reportIds: selectedReportIds,
-        rawFileNames: rawFileUpdates
-      }),
-    });
+    const res2 = await fetch(`http://localhost:4000/api/mass-update-rawfile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportIds: selectedReportIds,
+          rawFileNames: rawFileUpdates.map(e => e.fileName)
+        }),
+      });
   
     if (res2.ok) {
       // merge rawFiles into local state
@@ -655,7 +666,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newRawFileInput}
       onChange={e => setNewRawFileInput(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/rawfile-options`)
+        fetch(`http://localhost:4000/api/rawfile-options`)
           .then(res => res.json())
           .then(data => setRawFileOptions(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
@@ -674,7 +685,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newSystemName}
       onChange={e => setNewSystemName(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/system-names`)
+        fetch(`http://localhost:4000/api/system-names`)
           .then(res => res.json())
           .then(data => setSystemNames(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
@@ -693,7 +704,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newSystemOwner}
       onChange={e => setNewSystemOwner(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/system-owners`)
+        fetch(`http://localhost:4000/api/system-owners`)
           .then(res => res.json())
           .then(data => setSystemOwners(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
