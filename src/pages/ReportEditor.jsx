@@ -32,7 +32,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         setReports(data);
@@ -42,7 +42,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/pic-options`)
+    fetch(`http://localhost:4000/api/pic-options`)
       .then(res => res.json())
       .then(setGlobalPicOptions)
       .catch(err => console.error("❌ Failed to fetch PIC options:", err));
@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   const deleteReport = async (reportId) => {
     try {
-      const res = await fetch(`${apiUrl}/api/delete-report`, {
+      const res = await fetch(`http://localhost:4000/api/delete-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId }),
@@ -102,17 +102,24 @@ export default function DashboardPage() {
           }
           break;
   
-        case 'PICs':
-          bus.forEach(b => {
-            if (Array.isArray(b.stages)) {
-              b.stages.forEach(s => {
-                if (Array.isArray(s.PICs)) {
-                  s.PICs.forEach(p => values.add(p));
-                }
-              });
-            }
-          });
-          break;
+          case 'PICs':
+            bus.forEach(b => {
+              if (Array.isArray(b.stages)) {
+                b.stages.forEach(s => {
+                  if (Array.isArray(s.PICs)) {
+                    s.PICs.forEach(p => {
+                      // if p is an object, use p.name; otherwise p is already a string
+                      if (p && typeof p === 'object') {
+                        values.add(p.name);
+                      } else if (typeof p === 'string') {
+                        values.add(p);
+                      }
+                    });
+                  }
+                });
+              }
+            });
+            break;
   
         case 'businessOwners':
           if (Array.isArray(report.businessOwners)) {
@@ -307,7 +314,7 @@ export default function DashboardPage() {
         });
       }
   
-      const res = await fetch(`${apiUrl}/api/update-report`, {
+      const res = await fetch(`http://localhost:4000/api/update-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
@@ -678,88 +685,139 @@ export default function DashboardPage() {
     Person in Charge (PIC)
   </label>
 
-  {!stage.editingPIC ? (
-    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-      {stage.PICs?.length > 0 ? (
-        stage.PICs.map(p => (
-          <span key={p} className="selected-report-tag">{p}</span>
-        ))
-      ) : (
-        <span>No PIC Assigned</span>
-      )}
-      <button
-        className="btn-primary-change-pic"
-        onClick={() => {
-          const updated = [...filteredReports];
-          updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC = true;
-          setFilteredReports(updated);
-        }}
-      >
-        ✏️ Edit PIC
-      </button>
-    </div>
-  ) : (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-  {/* input + add button */}
-  <div style={{ display: 'flex', gap: '0.5rem' }}>
-    <input
-      className="input"
-      list={`pic-list-${stage.stageId}`}
-      value={stage.selectedPIC || ''}
-      placeholder="Type or select PIC"
-      onChange={e => {
+{/* …inside the “edit‐mode off” case for PICs… */}
+{/* …inside the “edit‐mode off” case for PICs… */}
+{!stage.editingPIC ? (
+  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+    {stage.PICs?.length > 0 ? (
+      stage.PICs.map((p, i) => {
+        // If p is an object with { name, org }, format it accordingly; otherwise assume it's a string
+        const displayText =
+          p && typeof p === 'object'
+            ? (p.org?.trim() ? `${p.name} (${p.org})` : p.name)
+            : p;
+
+        return (
+          <span
+            key={`${typeof p === 'object' ? p.name + p.org : p}-${i}`}
+            className="selected-report-tag"
+          >
+            {displayText}
+          </span>
+        );
+      })
+    ) : (
+      <span>No PIC Assigned</span>
+    )}
+    <button
+      className="btn-primary-change-pic"
+      onClick={() => {
         const updated = [...filteredReports];
-        updated[reportIdx].usedBy[0].stages[stageIdx].selectedPIC = e.target.value;
+        updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC = true;
+        // Clear any leftover inputs when entering edit mode
+        updated[reportIdx].usedBy[0].stages[stageIdx].selectedPIC = '';
+        updated[reportIdx].usedBy[0].stages[stageIdx].selectedOrg = '';
         setFilteredReports(updated);
       }}
-    />
-    <datalist id={`pic-list-${stage.stageId}`}>
-      {(globalPicOptions[stage.stageId] || []).map(p => (
-        <option key={p} value={p} />
-      ))}
-    </datalist>
-    <button
-      className="btn-primary"
-      onClick={() => handleAddPIC(reportIdx, stageIdx)}
     >
-      + Add PIC
+      ✏️ Edit PIC
     </button>
   </div>
+) : (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    {/* input + add button */}
+    <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <input
+        className="input"
+        list={`pic-list-${stage.stageId}`}
+        value={stage.selectedPIC || ''}
+        placeholder="Type or select PIC"
+        onChange={e => {
+          const updated = [...filteredReports];
+          updated[reportIdx].usedBy[0].stages[stageIdx].selectedPIC = e.target.value;
+          setFilteredReports(updated);
+        }}
+        style={{ flex: 1 }}
+      />
+      <datalist id={`pic-list-${stage.stageId}`}>
+        {(globalPicOptions[stage.stageId]?.entries || []).map((entry, idx) => (
+          <option key={`${entry.name}-${entry.org}-${idx}`} value={entry.name} />
+        ))}
+      </datalist>
 
-  {/* current PIC tags */}
-  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-    {(stage.PICs || []).map(p => (
-      <span key={p} className="selected-report-tag">
-        {p}
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            marginLeft: '0.25rem',
-            cursor: 'pointer',
-            color: 'red',
-          }}
-          onClick={() => handleRemovePIC(reportIdx, stageIdx, p)}
-        >
-          ×
-        </button>
-      </span>
-    ))}
+      <input
+        className="input"
+        list={`org-list-${stage.stageId}`}
+        value={stage.selectedOrg || ''}
+        placeholder="Type or select Org"
+        onChange={e => {
+          const updated = [...filteredReports];
+          updated[reportIdx].usedBy[0].stages[stageIdx].selectedOrg = e.target.value;
+          setFilteredReports(updated);
+        }}
+        style={{ flex: 1 }}
+      />
+      <datalist id={`org-list-${stage.stageId}`}>
+        {(globalPicOptions[stage.stageId]?.entries || [])
+          .filter(entry => entry.name === stage.selectedPIC)
+          .map((entry, idx) => (
+            <option key={`${entry.name}-${entry.org}-org-${idx}`} value={entry.org} />
+          ))}
+      </datalist>
+
+      <button
+        className="btn-primary"
+        onClick={() => handleAddPIC(reportIdx, stageIdx)}
+      >
+        + Add PIC
+      </button>
+    </div>
+
+    {/* current PIC tags with remove buttons */}
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+      {(stage.PICs || []).map((p, i) => {
+        const displayText =
+          p && typeof p === 'object'
+            ? (p.org?.trim() ? `${p.name} (${p.org})` : p.name)
+            : p;
+        return (
+          <span
+            key={`${typeof p === 'object' ? p.name + p.org : p}-${i}`}
+            className="selected-report-tag"
+          >
+            {displayText}
+            <button
+              style={{
+                background: 'transparent',
+                border: 'none',
+                marginLeft: '0.25rem',
+                cursor: 'pointer',
+                color: 'red',
+              }}
+              onClick={() => handleRemovePIC(reportIdx, stageIdx, p)}
+            >
+              ×
+            </button>
+          </span>
+        );
+      })}
+    </div>
+
+    {/* cancel editing */}
+    <button
+      className="btn-secondary"
+      onClick={() => {
+        const updated = [...filteredReports];
+        delete updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC;
+        delete updated[reportIdx].usedBy[0].stages[stageIdx].selectedPIC;
+        delete updated[reportIdx].usedBy[0].stages[stageIdx].selectedOrg;
+        setFilteredReports(updated);
+      }}
+    >
+      ❌ Cancel
+    </button>
   </div>
-
-  {/* cancel editing */}
-  <button
-    className="btn-secondary"
-    onClick={() => {
-      const updated = [...filteredReports];
-      delete updated[reportIdx].usedBy[0].stages[stageIdx].editingPIC;
-      setFilteredReports(updated);
-    }}
-  >
-    ❌ Cancel
-  </button>
-</div>
-  )}
+)}
 </div>
       
       <label className="label-editor" style={{ flex: '1 1 45%' }}>

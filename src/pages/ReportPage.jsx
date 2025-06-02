@@ -19,7 +19,7 @@ export default function ReportPage() {
 const [selectedReports, setSelectedReports] = useState([]);
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(setReports)
       .catch(err => console.error('❌ Failed to fetch reports:', err));
@@ -121,7 +121,14 @@ const [selectedReports, setSelectedReports] = useState([]);
           const stages = Array.isArray(b.stages) ? b.stages : [];
           stages.forEach(s => {
             if (Array.isArray(s.PICs)) {
-              s.PICs.forEach(p => values.add(p));
+              s.PICs.forEach(p => {
+                // p might be either a string or an object {name,org}
+                if (p && typeof p === 'object') {
+                  values.add(p.name);
+                } else if (typeof p === 'string') {
+                  values.add(p);
+                }
+              });
             }
           });
         });
@@ -619,35 +626,53 @@ filtered.forEach((r) => {
      
       <h3>📋 Pending Reports by PIC</h3>
       <ul>
-        {Object.entries(
-          filtered.reduce((acc, report) => {
-            const currentStage = report.usedBy?.[0]?.stages.find(s => s.stageName === report.currentStage);
-            const pics = currentStage?.PICs || [];
-            pics.forEach(pic => {
-              acc[pic] = (acc[pic] || 0) + 1;
-            });
-            return acc;
-          }, {})
-        ).map(([pic, count]) => (
-          <li key={pic}><strong>{pic}</strong>: {count}</li>
-        ))}
+      {Object.entries(
+        filtered.reduce((acc, report) => {
+          const currentStage = report.usedBy?.[0]?.stages.find(s => s.stageName === report.currentStage);
+          ;(currentStage?.PICs || []).forEach(p => {
+            // p may be {name,org} or a string
+            const picName = p && typeof p === 'object' ? p.name : p;
+            acc[picName] = (acc[picName] || 0) + 1;
+          });
+          return acc;
+        }, {})
+      ).map(([picName, count]) => (
+        <li key={picName}>
+          <strong>{picName}</strong>: {count}
+        </li>
+      ))}
       </ul>
     </div>
 
-    <div className="summary-card-report">
-      <h3>🏢 Pending Reports by BU</h3>
-      <ul>
-        {Object.entries(
-          filtered.reduce((acc, report) => {
-            const bu = report.usedBy?.[0]?.buName || 'Unknown';
-            acc[bu] = (acc[bu] || 0) + 1;
-            return acc;
-          }, {})
-        ).map(([bu, count]) => (
-          <li key={bu}><strong>{bu}</strong>: {count}</li>
-        ))}
-      </ul>
-    </div>
+    {/* Combined PIC + Business–Owner Summary */}
+<div className="summary-card-report">
+  <h3>📋 Pending Reports by PIC</h3>
+  <ul>
+    {Object.entries(
+      filtered.reduce((acc, report) => {
+        // count PICs
+        const currentStage = report.usedBy?.[0]?.stages.find(
+          (s) => s.stageName === report.currentStage
+        );
+        ;(currentStage?.PICs || []).forEach((p) => {
+          const picName = typeof p === "object" ? p.name : p;
+          acc[`PIC: ${picName}`] = (acc[`PIC: ${picName}`] || 0) + 1;
+        });
+
+        // count Business Owners
+        ;(report.businessOwners || []).forEach((owner) => {
+          acc[`BO: ${owner}`] = (acc[`BO: ${owner}`] || 0) + 1;
+        });
+
+        return acc;
+      }, {})
+    ).map(([label, count]) => (
+      <li key={label}>
+        <strong>{label}</strong>: {count}
+      </li>
+    ))}
+  </ul>
+</div>
     <div
   className={`summary-card-report-delayed ${showOnlyDelayed ? 'selected' : ''}`}
 
@@ -736,9 +761,28 @@ filtered.forEach((r) => {
           {isExpanded && (
             <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <div><strong>BU:</strong> {report.usedBy?.[0]?.buName || '-'}</div>
-              <div><strong>Biz Owner:</strong> {report.usedBy?.[0]?.businessOwner || '-'}</div>
+              <div>
+                <strong>Biz Owner:</strong>{' '}
+                {(report.businessOwners || []).length
+                  ? report.businessOwners.join(', ')
+                  : '-'}
+              </div>
               <div><strong>Stage:</strong> {report.currentStage || '-'}</div>
-              <div><strong>Current PICs:</strong> {(report.usedBy?.[0]?.stages || []).find(s => s.stageName === report.currentStage)?.PICs?.join(', ') || '-'}</div>
+              {/* first grab the PIC-array, then map each entry to a string */}
+              <div>
+                <strong>Current PICs:</strong>{' '}
+                {(
+                  report.usedBy?.[0]?.stages.find(s => s.stageName === report.currentStage)
+                    ?.PICs || []
+                )
+                  .map(p => {
+                    if (p && typeof p === 'object') {
+                      return p.org?.trim() ? `${p.name} (${p.org})` : p.name;
+                    }
+                    return p; // string
+                  })
+                  .join(', ') || '-'}
+              </div>
             </div>
           )}
         </div>

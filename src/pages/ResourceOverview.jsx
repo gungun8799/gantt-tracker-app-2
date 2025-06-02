@@ -32,7 +32,7 @@ export default function ResourceOverviewPage() {
   const [filterPics,  setFilterPics]  = useState([]);
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(r => r.json())
       .then(setReports)
       .catch(console.error);

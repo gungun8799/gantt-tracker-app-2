@@ -32,7 +32,7 @@ const stageDisplayMap = {
   useEffect(() => {
     const normalize = str => str?.trim().toLowerCase();
   
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         console.log('📦 fetched', data.length, 'reports');
@@ -271,13 +271,36 @@ data.forEach(r => {
       ))}
     </div>
 
-    {/* PICs */}
-    <div className="tag-group">
-      <span className="tag-label">PICs:</span>
-      {(stage?.PICs?.length ? stage.PICs : ['-']).map((p, i) => (
-        <span key={i} className="tag">{p}</span>
-      ))}
-    </div>
+{/* PICs */}
+<div className="tag-group">
+  <span className="tag-label">PICs:</span>
+  {Array.isArray(stage?.PICs) && stage.PICs.length > 0
+    ? stage.PICs.map((p, i) => {
+        // if p is a string, render it directly
+        if (typeof p === "string") {
+          return (
+            <span key={i} className="tag">
+              {p}
+            </span>
+          );
+        }
+
+        // otherwise assume p is { name, org }
+        const displayText = p.org?.trim()
+          ? `${p.name} (${p.org})`
+          : p.name;
+
+        return (
+          <span key={i} className="tag">
+            {displayText}
+          </span>
+        );
+      })
+    : (
+      <span className="tag">-</span>
+    )
+  }
+</div>
 
     {/* Raw Files */}
     <div className="tag-group">

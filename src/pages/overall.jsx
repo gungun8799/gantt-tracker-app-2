@@ -76,7 +76,7 @@ export default function OverallPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${apiUrl}
+    fetch(`http://localhost:4000
 /api/get-reports`)
       .then(r => r.json())
       .then(setReports)
@@ -117,11 +117,19 @@ export default function OverallPage() {
     buSummary[bu] = (buSummary[bu]||0) + 1;
   });
   stageNames.forEach(stage => {
-    picByStage[stage] = [...new Set(
-      filteredReports.flatMap(r =>
-        r.usedBy?.[0]?.stages?.find(s => s.stageName === stage)?.PICs || []
-      )
-    )].join(', ');
+      // 1) pull out every {name,org} from that stage across all reports
+  const allPICObjects = filteredReports.flatMap(r => {
+    const stageObj = r.usedBy?.[0]?.stages?.find(s => s.stageName === stage);
+    return stageObj?.PICs || [];
+  });
+
+  // 2) extract ONLY the org property; if it's a legacy string, skip
+  const allOrgStrings = allPICObjects
+    .filter(p => p && typeof p === 'object' && p.org && p.org.trim())
+    .map(p => p.org.trim());
+
+  // 3) dedupe and join
+  picByStage[stage] = [...new Set(allOrgStrings)].join(', ');
   });
 
   // build Gantt rows including General category
