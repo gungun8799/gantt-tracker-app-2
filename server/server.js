@@ -18,8 +18,8 @@ const PORT = process.env.PORT || 4000;
 
 app.use(
   cors({
-    origin: [ "http://localhost:3001", "https://your-frontend-domain.com" ], 
-    methods: [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+    origin: "https://gantt-tracker-app-frontend-2.onrender.com",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
   })
 );
