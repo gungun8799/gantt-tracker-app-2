@@ -310,15 +310,18 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     }
   
     if (mode === 'stage') {
-      // ── 1) bulk PIC update ───────────────────────────────────
-      const picRes = await fetch(`${apiUrl}/api/mass-update-pic`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportIds: selectedReportIds,
-          picUpdates
-        }),
-      });
+      // ── 1) bulk PIC update (only if there are changes) ───────────────────────────────────
+      let picRes = { ok: true };
+      if (Object.keys(picUpdates).length > 0) {
+        picRes = await fetch(`${apiUrl}/api/mass-update-pic`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reportIds: selectedReportIds,
+            picUpdates
+          }),
+        });
+      }
   
       // ── 2) bulk timeline update ──────────────────────────────
       const timelineRes = await fetch(`${apiUrl}/api/mass-update-timeline`, {
@@ -357,8 +360,12 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
         alert('✅ PICs & timelines updated');
       } else {
-        console.error('PIC error:', await picRes.text());
-        console.error('Timeline error:', await timelineRes.text());
+        if (!picRes.ok) {
+          console.error('PIC error:', await picRes.text());
+        }
+        if (!timelineRes.ok) {
+          console.error('Timeline error:', await timelineRes.text());
+        }
         alert('❌ Failed to update PICs and/or timelines');
       }
   
@@ -367,16 +374,15 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
   
     // … your existing Raw-file branch unchanged …
   
-  
     // ── bulk Raw-file update ───────────────────────────────────
     const res2 = await fetch(`${apiUrl}/api/mass-update-rawfile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportIds: selectedReportIds,
-          rawFileEntries: rawFileUpdates    // <-- full objects array
-        }),
-      });
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reportIds: selectedReportIds,
+        rawFileEntries: rawFileUpdates    // <-- full objects array
+      }),
+    });
   
     if (res2.ok) {
       // merge rawFiles into local state
