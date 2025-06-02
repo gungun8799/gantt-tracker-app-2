@@ -397,15 +397,15 @@ export default function DataEntryPage() {
   );
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/rawfile-options`).then(res => res.json()).then(setRawFileOptions);
-    fetch(`http://localhost:4000/api/bowner-options`).then(res => res.json()).then(setBOwnerOptions);
-    fetch(`http://localhost:4000/api/system-names`).then(res => res.json()).then(setSystemNames);
-    fetch(`http://localhost:4000/api/system-owners`).then(res => res.json()).then(setSystemOwners);
+    fetch(`${apiUrl}/api/rawfile-options`).then(res => res.json()).then(setRawFileOptions);
+    fetch(`${apiUrl}/api/bowner-options`).then(res => res.json()).then(setBOwnerOptions);
+    fetch(`${apiUrl}/api/system-names`).then(res => res.json()).then(setSystemNames);
+    fetch(`${apiUrl}/api/system-owners`).then(res => res.json()).then(setSystemOwners);
   }, []);
 
   useEffect(() => {
     // Fetch global PIC options per stageId
-    fetch(`http://localhost:4000/api/pic-options`)
+    fetch(`${apiUrl}/api/pic-options`)
       .then(res => res.json())
       .then(data => {
         const updated = stages.map(stage => {
@@ -445,21 +445,21 @@ export default function DataEntryPage() {
     }
     if (!rawFileOptions.includes(selectedRawFile)) {
       setRawFileOptions(prev => [...prev, selectedRawFile]);
-      fetch(`http://localhost:4000/api/save-rawfile-option`, {
+      fetch(`${apiUrl}/api/save-rawfile-option`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: selectedRawFile })
       });
     }
     if (!systemNames.includes(systemName)) {
       setSystemNames(prev => [...prev, systemName]);
-      fetch(`http://localhost:4000/api/save-system-name`, {
+      fetch(`${apiUrl}/api/save-system-name`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: systemName })
       });
     }
     if (!systemOwners.includes(systemOwner)) {
       setSystemOwners(prev => [...prev, systemOwner]);
-      fetch(`http://localhost:4000/api/save-system-owner`, {
+      fetch(`${apiUrl}/api/save-system-owner`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: systemOwner })
       });
@@ -470,7 +470,7 @@ export default function DataEntryPage() {
     if (selectedBOwner) {
       if (!BOwnerOptions.includes(selectedBOwner)) {
         setBOwnerOptions(prev => [...prev, selectedBOwner]);
-        fetch(`http://localhost:4000/api/save-bowner-option`, {
+        fetch(`${apiUrl}/api/save-bowner-option`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: selectedBOwner })
         });
@@ -568,7 +568,7 @@ export default function DataEntryPage() {
       if (newPIC && !stage.picOptions.includes(newPIC)) {
         stage.picOptions.push(newPIC);
         console.log('📤 Saving PIC:', newPIC, 'for stage', stage.stageId); // ✅ ADD THIS
-        fetch(`http://localhost:4000/api/save-pic-option`, {
+        fetch(`${apiUrl}/api/save-pic-option`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newPIC, stageId: stage.stageId })
@@ -616,7 +616,7 @@ export default function DataEntryPage() {
     };
   
     try {
-      const res = await fetch(`http://localhost:4000/api/save-report`, {
+      const res = await fetch(`${apiUrl}/api/save-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
