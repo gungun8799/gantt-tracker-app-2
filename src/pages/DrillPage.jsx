@@ -32,7 +32,7 @@ const stageDisplayMap = {
   useEffect(() => {
     const normalize = str => str?.trim().toLowerCase();
   
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         console.log('📦 fetched', data.length, 'reports');

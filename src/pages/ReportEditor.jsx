@@ -32,7 +32,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/get-reports`)
+    fetch(`${apiUrl}/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         setReports(data);
@@ -42,7 +42,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/pic-options`)
+    fetch(`${apiUrl}/api/pic-options`)
       .then(res => res.json())
       .then(setGlobalPicOptions)
       .catch(err => console.error("❌ Failed to fetch PIC options:", err));
@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   const deleteReport = async (reportId) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/delete-report`, {
+      const res = await fetch(`${apiUrl}/api/delete-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId }),
@@ -314,7 +314,7 @@ export default function DashboardPage() {
         });
       }
   
-      const res = await fetch(`http://localhost:4000/api/update-report`, {
+      const res = await fetch(`${apiUrl}/api/update-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
