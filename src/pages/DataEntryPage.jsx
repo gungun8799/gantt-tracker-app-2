@@ -397,23 +397,33 @@ export default function DataEntryPage() {
   );
 
   useEffect(() => {
-    fetch(`${apiUrl}/api/rawfile-options`).then(res => res.json()).then(setRawFileOptions);
-    fetch(`${apiUrl}/api/bowner-options`).then(res => res.json()).then(setBOwnerOptions);
-    fetch(`${apiUrl}/api/system-names`).then(res => res.json()).then(setSystemNames);
-    fetch(`${apiUrl}/api/system-owners`).then(res => res.json()).then(setSystemOwners);
+    fetch(`http://localhost:4000/api/rawfile-options`).then(res => res.json()).then(setRawFileOptions);
+    fetch(`http://localhost:4000/api/bowner-options`).then(res => res.json()).then(setBOwnerOptions);
+    fetch(`http://localhost:4000/api/system-names`).then(res => res.json()).then(setSystemNames);
+    fetch(`http://localhost:4000/api/system-owners`).then(res => res.json()).then(setSystemOwners);
   }, []);
 
   useEffect(() => {
-    // Add fetch for global PIC options per stageId
-    fetch(`${apiUrl}/api/pic-options`)
+    // Fetch global PIC options per stageId
+    fetch(`http://localhost:4000/api/pic-options`)
       .then(res => res.json())
-      .then((data) => {
-        const updated = stages.map(stage => ({
-          ...stage,
-          picOptions: data[stage.stageId] || stage.picOptions
-        }));
+      .then(data => {
+        const updated = stages.map(stage => {
+          const backendEntry = data[stage.stageId];
+          // If backend sent an array (legacy), use it directly.
+          // Otherwise extract `.names` (fall back to existing if missing).
+          const namesArray = Array.isArray(backendEntry)
+            ? backendEntry
+            : (backendEntry?.names || stage.picOptions);
+  
+          return {
+            ...stage,
+            picOptions: namesArray
+          };
+        });
         setStages(updated);
-      });
+      })
+      .catch(console.error);
   }, []);
 
   const addToList = (value, setter, list) => {
@@ -435,21 +445,21 @@ export default function DataEntryPage() {
     }
     if (!rawFileOptions.includes(selectedRawFile)) {
       setRawFileOptions(prev => [...prev, selectedRawFile]);
-      fetch(`${apiUrl}/api/save-rawfile-option`, {
+      fetch(`http://localhost:4000/api/save-rawfile-option`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: selectedRawFile })
       });
     }
     if (!systemNames.includes(systemName)) {
       setSystemNames(prev => [...prev, systemName]);
-      fetch(`${apiUrl}/api/save-system-name`, {
+      fetch(`http://localhost:4000/api/save-system-name`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: systemName })
       });
     }
     if (!systemOwners.includes(systemOwner)) {
       setSystemOwners(prev => [...prev, systemOwner]);
-      fetch(`${apiUrl}/api/save-system-owner`, {
+      fetch(`http://localhost:4000/api/save-system-owner`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: systemOwner })
       });
@@ -460,7 +470,7 @@ export default function DataEntryPage() {
     if (selectedBOwner) {
       if (!BOwnerOptions.includes(selectedBOwner)) {
         setBOwnerOptions(prev => [...prev, selectedBOwner]);
-        fetch(`${apiUrl}/api/save-bowner-option`, {
+        fetch(`http://localhost:4000/api/save-bowner-option`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: selectedBOwner })
         });
@@ -481,49 +491,36 @@ export default function DataEntryPage() {
     setStages(updated);
   };
 
-  const handleAddPIC = async (i) => {
+  const handleAddPIC = async i => {
     const updated = [...stages];
     const stage = updated[i];
-    const newPIC = stage.selectedPIC.trim();
-  
-    if (!newPIC) return;
-  
-    // Add to displayed PICs
-    if (!stage.PICs.includes(newPIC)) {
-      stage.PICs.push(newPIC);
+    const name = stage.selectedPIC.trim();
+    const org  = (stage.selectedPICOrg || '').trim();
+    if (!name || !org) return; 
+    // 1) add to displayed PIC list if not already present
+    if (!stage.PICs.some(p => p.name === name && p.org === org)) {
+      stage.PICs.push({ name, org });
     }
-  
-    // Save to backend if it's a new PIC option
-    if (!stage.picOptions.includes(newPIC)) {
-      stage.picOptions.push(newPIC);
-      console.log('💬 Saving PIC to backend:', newPIC, 'for', stage.stageId);
-  
-      try {
-        const res = await fetch(`${apiUrl}/api/save-pic-option`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newPIC, stageId: stage.stageId })
-        });
-  
-        if (!res.ok) {
-          const error = await res.json();
-          console.error('❌ Failed to save PIC:', error?.error || 'Unknown error');
-        } else {
-          console.log('✅ PIC saved successfully');
-        }
-      } catch (err) {
-        console.error('❌ Backend error while saving PIC:', err.message);
-      }
+    // 2) if this PIC name is brand-new, also push it into picOptions
+    if (!stage.picOptions.includes(name)) {
+      stage.picOptions.push(name);
+      // send to backend: only save “name” into pic_options names[]. Org is stored per‐report only
+      await fetch(`${apiUrl}/api/save-pic-option`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stageId: stage.stageId, name, org })
+      });
     }
-  
+    // 3) clear inputs
     stage.selectedPIC = '';
+    stage.selectedPICOrg = '';
     setStages(updated);
   };
 
   
-  const handleRemovePIC = (i, name) => {
+  const handleRemovePIC = (i, name, org) => {
     const updated = [...stages];
-    updated[i].PICs = updated[i].PICs.filter(p => p !== name);
+    updated[i].PICs = updated[i].PICs.filter(p => !(p.name === name && p.org === org));
     setStages(updated);
   };
 
@@ -571,7 +568,7 @@ export default function DataEntryPage() {
       if (newPIC && !stage.picOptions.includes(newPIC)) {
         stage.picOptions.push(newPIC);
         console.log('📤 Saving PIC:', newPIC, 'for stage', stage.stageId); // ✅ ADD THIS
-        fetch(`${apiUrl}/api/save-pic-option`, {
+        fetch(`http://localhost:4000/api/save-pic-option`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newPIC, stageId: stage.stageId })
@@ -619,7 +616,7 @@ export default function DataEntryPage() {
     };
   
     try {
-      const res = await fetch(`${apiUrl}/api/save-report`, {
+      const res = await fetch(`http://localhost:4000/api/save-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(report)
@@ -784,64 +781,145 @@ export default function DataEntryPage() {
       {/* Stages */}
       <div className="section-block">
         <h2 className="section-title">📌 Stages</h2>
-        {stages.map((stage, i) => (
-          <div key={i} style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem', borderRadius: '6px' }}>
-            <h3 className="section-title">{stage.stageName}</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-              <label className="label" style={{ flex: '1 1 45%' }}>
-                Planned Start
-                <input type="date" className="input" value={stage.plannedStart} onChange={e => handleStageChange(i, 'plannedStart', e.target.value)} />
-              </label>
-              <label className="label" style={{ flex: '1 1 45%' }}>
-                Planned End
-                <input type="date" className="input" value={stage.plannedEnd} onChange={e => handleStageChange(i, 'plannedEnd', e.target.value)} />
-              </label>
-              <label className="label" style={{ flex: '1 1 45%' }}>
-                Actual Start
-                <input type="date" className="input" value={stage.actualStart} onChange={e => handleStageChange(i, 'actualStart', e.target.value)} />
-              </label>
-              <label className="label" style={{ flex: '1 1 45%' }}>
-                Actual End
-                <input type="date" className="input" value={stage.actualEnd} onChange={e => handleStageChange(i, 'actualEnd', e.target.value)} />
-              </label>
-              <label className="label" style={{ flex: '1 1 100%' }}>
-                PICs
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                    className="input"
-                    list={`pic-list-${i}`}
-                    value={stage.selectedPIC}
-                    onChange={e => handleStageChange(i, 'selectedPIC', e.target.value)}
-                    placeholder="Type or select PIC"
-                  />
-                  <datalist id={`pic-list-${i}`}>
-                    {stage.picOptions.map(p => <option key={p} value={p} />)}
-                  </datalist>
-                  <button className="btn-primary" type="button" onClick={() => handleAddPIC(i)}>+ Add PIC</button>
-                </div>
-              </label>
-              <div style={{ width: '100%', marginBottom: '0.5rem' }}>
-                {stage.PICs.map(pic => (
-                  <span key={pic} style={{ marginRight: '0.5rem' }}>
-                    {pic} <button onClick={() => handleRemovePIC(i, pic)}>🗑</button>
-                  </span>
-                ))}
-              </div>
-              <label className="label" style={{ flex: '1 1 100%' }}>
-                Issue Description
-                <input className="input" value={stage.issueDescription} onChange={e => handleStageChange(i, 'issueDescription', e.target.value)} />
-              </label>
+        {stages.map((stage, i) => {
+  // Each stage now has:
+  //   stage.PICs: { name: string, org: string }[]
+  //   stage.selectedPIC: string
+  //   stage.selectedPICOrg: string
+  //
+  // (Later, handleAddPIC pushes { name, org } into stage.PICs.)
 
-              <button
-                  className="btn-secondary-finish"
-                  onClick={() => handleFinishStage(i)}
-                  style={{ marginTop: '1rem' }}
-                >
-                  ✅ Finish This Stage
-                </button>
-            </div>
+  return (
+    <div
+      key={stage.stageId}
+      style={{
+        border: '1px solid #ccc',
+        padding: '1rem',
+        marginBottom: '1rem',
+        borderRadius: '6px'
+      }}
+    >
+      <h3 className="section-title">{stage.stageName}</h3>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+        {/* Planned/Actual Date Inputs (unchanged) */}
+        <label className="label" style={{ flex: '1 1 45%' }}>
+          Planned Start
+          <input
+            type="date"
+            className="input"
+            value={stage.plannedStart}
+            onChange={e => handleStageChange(i, 'plannedStart', e.target.value)}
+          />
+        </label>
+        <label className="label" style={{ flex: '1 1 45%' }}>
+          Planned End
+          <input
+            type="date"
+            className="input"
+            value={stage.plannedEnd}
+            onChange={e => handleStageChange(i, 'plannedEnd', e.target.value)}
+          />
+        </label>
+        <label className="label" style={{ flex: '1 1 45%' }}>
+          Actual Start
+          <input
+            type="date"
+            className="input"
+            value={stage.actualStart}
+            onChange={e => handleStageChange(i, 'actualStart', e.target.value)}
+          />
+        </label>
+        <label className="label" style={{ flex: '1 1 45%' }}>
+          Actual End
+          <input
+            type="date"
+            className="input"
+            value={stage.actualEnd}
+            onChange={e => handleStageChange(i, 'actualEnd', e.target.value)}
+          />
+        </label>
+
+        {/* ───── PIC name + Org ───── */}
+        <label className="label" style={{ flex: '1 1 100%' }}>
+          PICs
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {/* PIC Name Input with datalist */}
+            <input
+              className="input"
+              list={`pic-list-${i}`}
+              value={stage.selectedPIC}
+              onChange={e => handleStageChange(i, 'selectedPIC', e.target.value)}
+              placeholder="Type or select PIC name"
+              style={{ flex: '1 1 45%' }}
+            />
+            <datalist id={`pic-list-${i}`}>
+              {stage.picOptions.map((pName, idx) => (
+                <option key={`${pName}-${idx}`} value={pName} />
+              ))}
+            </datalist>
+
+            {/* Organization Input */}
+            <input
+              className="input"
+              list={`org-list-${i}`}
+              value={stage.selectedPICOrg || ''}
+              onChange={e => handleStageChange(i, 'selectedPICOrg', e.target.value)}
+              placeholder="Type or select Organization"
+              style={{ flex: '1 1 45%' }}
+            />
+            <datalist id={`org-list-${i}`}>
+              {/* show all orgs that exist for this stage’s picOptions.entries (if you fetched them) */}
+              {(stage.picOptionsEntries || []).map((entry, idx) => (
+                // entry has shape { name, org }
+                <option key={`${entry.name}|${entry.org}|${idx}`} value={entry.org} />
+              ))}
+            </datalist>
+
+            <button
+              className="btn-primary"
+              type="button"
+              onClick={() => handleAddPIC(i)}
+            >
+              + Add PIC
+            </button>
           </div>
-        ))}
+        </label>
+
+        {/* Display each PIC as “Name (Org)”, with a remove button */}
+        <div style={{ width: '100%', marginBottom: '0.5rem' }}>
+          {stage.PICs.map((picObj, idx) => (
+            <span key={`${picObj.name}-${picObj.org}-${idx}`} style={{ marginRight: '0.5rem' }}>
+              {picObj.name}
+              {picObj.org ? ` (${picObj.org})` : ''}
+              <button onClick={() => handleRemovePIC(i, picObj.name, picObj.org)}>
+                🗑
+              </button>
+            </span>
+          ))}
+        </div>
+
+        {/* Issue Description (unchanged) */}
+        <label className="label" style={{ flex: '1 1 100%' }}>
+          Issue Description
+          <input
+            className="input"
+            value={stage.issueDescription}
+            onChange={e => handleStageChange(i, 'issueDescription', e.target.value)}
+          />
+        </label>
+
+        <button
+          className="btn-secondary-finish"
+          onClick={() => handleFinishStage(i)}
+          style={{ marginTop: '1rem' }}
+        >
+          ✅ Finish This Stage
+        </button>
+      </div>
+    </div>
+  );
+})}
       </div>
 
     

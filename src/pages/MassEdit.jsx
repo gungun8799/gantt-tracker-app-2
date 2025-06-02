@@ -61,19 +61,21 @@ export default function MassEditPage() {
     setRawFileUpdates(chosen);
   };
   // temporary input for adding a new PIC per stage
+  
   const [newPicInputs, setNewPicInputs] = useState({});
-  const handleRemovePic = (stageId, name) => {
-    setPicUpdates(u => ({
-      ...u,
-      [stageId]: (u[stageId] || []).filter(p => p !== name)
-    }));
-  };
-
+    const handleRemovePic = (stageId, name, org) => {
+        setPicUpdates(u => ({
+          ...u,
+          [stageId]: (u[stageId] || []).filter(
+            p => !(p.name === name && p.org === org)
+          )
+        }));
+      };
 
   
   useEffect(() => {
     // ── Reports ───────────────────────────────────────────────
-    fetch(`${apiUrl}/api/get-reports`)
+    fetch(`http://localhost:4000/api/get-reports`)
       .then(res => res.json())
       .then(data => {
         setReports(data);
@@ -82,36 +84,36 @@ export default function MassEditPage() {
       .catch(console.error);
   
     // ── PIC options ──────────────────────────────────────────
-    fetch(`${apiUrl}/api/pic-options`)
+    fetch(`http://localhost:4000/api/pic-options`)
       .then(res => res.json())
       .then(setPicOptions)
       .catch(console.error);
   
     // ── Raw-file options ─────────────────────────────────────
-    fetch(`${apiUrl}/api/rawfile-options`)
+    fetch(`http://localhost:4000/api/rawfile-options`)
       .then(res => res.json())
       .then(setRawFileOptions)
       .catch(console.error);
   
     // ── System Names ─────────────────────────────────────────
-    fetch(`${apiUrl}/api/system-names`)
+    fetch(`http://localhost:4000/api/system-names`)
       .then(res => res.json())
       .then(setSystemNames)
       .catch(console.error);
   
     // ── System Owners ────────────────────────────────────────
-    fetch(`${apiUrl}/api/system-owners`)
+    fetch(`http://localhost:4000/api/system-owners`)
       .then(res => res.json())
       .then(setSystemOwners)
       .catch(console.error);
   }, []);
 
   // filter reports list by name or id
+  // Replace your existing useEffect([... searchQuery, reports, selectedReportIds]) with this:
+
   useEffect(() => {
-    // Make sure we always have an array
+    // ── 1️⃣ Filter reports by name or ID ─────────────────────────────────────────────
     const srcReports = Array.isArray(reports) ? reports : [];
-  
-    // 1️⃣ Filter reports by name or ID
     const q = searchQuery.toLowerCase();
     const filtered = srcReports.filter(r =>
       r.reportName.toLowerCase().includes(q) ||
@@ -119,72 +121,106 @@ export default function MassEditPage() {
     );
     setFilteredReports(filtered);
   
-    // 2️⃣ Seed picUpdates
+    // ── 2️⃣ Seed picUpdates, normalizing both old‐style strings and new {name,org} objects ──
     if (selectedReportIds.length === 0) {
       setPicUpdates({});
     } else {
-      const combined = {};
+      const initialPic = {};
+  
       selectedReportIds.forEach(rid => {
         const rpt = srcReports.find(r => r.reportId === rid);
-        rpt?.usedBy?.[0]?.stages.forEach(stage => {
-          const sid = stage.stageId;
-          if (!combined[sid]) combined[sid] = new Set();
-          (stage.PICs || []).forEach(pic => combined[sid].add(pic));
+        if (!rpt) return;
+  
+        // usedBy might be an array or a plain object with numeric keys
+        const usedByArr = Array.isArray(rpt.usedBy)
+          ? rpt.usedBy
+          : Object.values(rpt.usedBy || {});
+  
+        usedByArr.forEach(bu => {
+          (bu.stages || []).forEach(stage => {
+            const sid = stage.stageId;
+            if (!initialPic[sid]) initialPic[sid] = [];
+  
+            (stage.PICs || []).forEach(picEntry => {
+              if (picEntry && typeof picEntry === 'object' && picEntry.name) {
+                // new‐style: { name, org }
+                initialPic[sid].push({ name: picEntry.name, org: picEntry.org || '' });
+              } else if (typeof picEntry === 'string') {
+                // old‐style: just a string
+                initialPic[sid].push({ name: picEntry, org: '' });
+              }
+            });
+          });
         });
       });
-      const initialPic = {};
-      Object.entries(combined).forEach(([sid, setOfPics]) => {
-        initialPic[sid] = Array.from(setOfPics);
+  
+      // Deduplicate exact {name,org} pairs
+      Object.entries(initialPic).forEach(([sid, arr]) => {
+        const seen = new Set();
+        const deduped = [];
+        arr.forEach(e => {
+          const key = `${e.name}||${e.org}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(e);
+          }
+        });
+        initialPic[sid] = deduped;
       });
+  
       setPicUpdates(initialPic);
     }
   
-    // ── 3️⃣ Seed rawFileUpdates as full objects
-if (selectedReportIds.length === 0) {
-    setRawFileUpdates([]);
-  } else {
-    // collect {fileName, systemName, systemOwner} from each report
-    const entries = [];
-    selectedReportIds.forEach(rid => {
-      const rpt = srcReports.find(r => r.reportId === rid);
-      rpt?.rawFiles?.forEach(f => {
-        entries.push({
-          fileName:     f.fileName,
-          systemName:   f.systemName   || '',
-          systemOwner:  f.systemOwner  || ''
+    // ── 3️⃣ Seed rawFileUpdates as full objects ───────────────────────────────────────
+    if (selectedReportIds.length === 0) {
+      setRawFileUpdates([]);
+    } else {
+      const entries = [];
+      selectedReportIds.forEach(rid => {
+        const rpt = srcReports.find(r => r.reportId === rid);
+        (rpt?.rawFiles || []).forEach(f => {
+          entries.push({
+            fileName:    f.fileName,
+            systemName:  f.systemName   || '',
+            systemOwner: f.systemOwner  || ''
+          });
         });
       });
-    });
-    // optionally de-dup identical entries:
-    const unique = [];
-    const seen = new Set();
-    for (let e of entries) {
-      const key = `${e.fileName}||${e.systemName}||${e.systemOwner}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(e);
+      const unique = [];
+      const seen = new Set();
+      for (let e of entries) {
+        const key = `${e.fileName}||${e.systemName}||${e.systemOwner}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(e);
+        }
       }
+      setRawFileUpdates(unique);
     }
-    setRawFileUpdates(unique);
-  }
-    // 4️⃣ Seed timelineUpdates
-if (selectedReportIds.length === 0) {
-    setTimelineUpdates({});
-  } else {
-    const tl = {};
-    selectedReportIds.forEach(rid => {
-      const rpt = srcReports.find(r => r.reportId === rid);
-      (rpt?.usedBy?.[0]?.stages || []).forEach(stage => {
-        tl[stage.stageId] = {
-          plannedStart: stage.plannedStart || '',
-          plannedEnd:   stage.plannedEnd   || '',
-          actualStart:  stage.actualStart  || '',
-          actualEnd:    stage.actualEnd    || '',
-        };
+  
+    // ── 4️⃣ Seed timelineUpdates ────────────────────────────────────────────────────
+    if (selectedReportIds.length === 0) {
+      setTimelineUpdates({});
+    } else {
+      const tl = {};
+      selectedReportIds.forEach(rid => {
+        const rpt = srcReports.find(r => r.reportId === rid);
+        const usedByArr = Array.isArray(rpt.usedBy)
+          ? rpt.usedBy
+          : Object.values(rpt.usedBy || {});
+  
+        // Assume we use the first bu object (index 0) as before
+        (usedByArr[0]?.stages || []).forEach(stage => {
+          tl[stage.stageId] = {
+            plannedStart: stage.plannedStart || '',
+            plannedEnd:   stage.plannedEnd   || '',
+            actualStart:  stage.actualStart  || '',
+            actualEnd:    stage.actualEnd    || '',
+          };
+        });
       });
-    });
-    setTimelineUpdates(tl);
-  }
+      setTimelineUpdates(tl);
+    }
   }, [searchQuery, reports, selectedReportIds]);
   const toggleReport = (reportId) => {
     setSelectedReportIds(ids =>
@@ -245,17 +281,17 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     // 4️⃣ persist
     try {
       await Promise.all([
-        fetch(`${apiUrl}/api/save-rawfile-option`, {
+        fetch(`http://localhost:4000/api/save-rawfile-option`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: file })
         }),
-        fetch(`${apiUrl}/api/save-system-name`, {
+        fetch(`http://localhost:4000/api/save-system-name`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: sys })
         }),
-        fetch(`${apiUrl}/api/save-system-owner`, {
+        fetch(`http://localhost:4000/api/save-system-owner`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: owner })
@@ -266,138 +302,243 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
     }
   };
   const handleStageAddPIC = async (stageId) => {
-    const val = (newPicInputs[stageId] || '').trim();
-    if (!val) return;
-
-    // 1) add to local options
+    const entry = newPicInputs[stageId] || { name: '', org: '' };
+    const name = entry.name.trim();
+    const org  = entry.org.trim();
+  
+    if (!name || !org) {
+      // require both fields
+      return;
+    }
+  
+    // ── 1) Update local picOptions so it stays as { names: [...], entries: [...] }
     setPicOptions(opts => {
+      // Clone the existing picOptions object
       const next = { ...opts };
-      next[stageId] = next[stageId] || [];
-      if (!next[stageId].includes(val)) {
-        next[stageId].push(val);
+  
+      // If nothing existed for this stageId, initialize to { names: [], entries: [] }
+      if (
+        !next[stageId] ||
+        typeof next[stageId] !== 'object' ||
+        Array.isArray(next[stageId])
+      ) {
+        next[stageId] = { names: [], entries: [] };
       }
+  
+      // Pull out whatever was already there
+      const existingNames   = Array.isArray(next[stageId].names)   ? next[stageId].names   : [];
+      const existingEntries = Array.isArray(next[stageId].entries) ? next[stageId].entries : [];
+  
+      // If this name is not yet in names[], push it
+      if (!existingNames.includes(name)) {
+        existingNames.push(name);
+      }
+  
+      // If this exact {name, org} pair isn’t in entries[], push it
+      const alreadyHasPair = existingEntries.some(e => e.name === name && e.org === org);
+      if (!alreadyHasPair) {
+        existingEntries.push({ name, org });
+      }
+  
+      // Write back the merged object
+      next[stageId] = {
+        names:   existingNames,
+        entries: existingEntries
+      };
       return next;
     });
-
-    // 2) add to this stage’s selection
+  
+    // ── 2) Merge into picUpdates[stageId] so the “Selected” tags show up
     setPicUpdates(u => {
-      const curr = u[stageId] || [];
+      const curr = Array.isArray(u[stageId]) ? u[stageId] : [];
+      const exists = curr.some(p => p.name === name && p.org === org);
+  
       return {
         ...u,
-        [stageId]: curr.includes(val) ? curr : [...curr, val],
+        [stageId]: exists
+          ? curr
+          : [...curr, { name, org }]
       };
     });
-
-    // 3) clear input
-    setNewPicInputs(i => ({ ...i, [stageId]: '' }));
-
-    // 4) persist to server
+  
+    // ── 3) Clear the input boxes
+    setNewPicInputs(i => ({
+      ...i,
+      [stageId]: { name: '', org: '' }
+    }));
+  
+    // ── 4) Persist both name + org to Firestore for next load
     try {
       await fetch(`${apiUrl}/api/save-pic-option`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId, name: val }),
+        body: JSON.stringify({ stageId, name, org }),
       });
     } catch (err) {
-      console.error('Failed to save new PIC:', err);
+      console.error('Failed to save new PIC (with org) to pic-options:', err);
     }
   };
-
+  
   const handleSave = async () => {
+    console.log("💾 handleSave fired", { selectedReportIds, picUpdates, timelineUpdates });
+  
     if (!selectedReportIds.length) {
-      alert('Select at least one report to update.');
+      alert("Select at least one report to update.");
       return;
     }
   
-    if (mode === 'stage') {
-      // ── 1) bulk PIC update (only if there are changes) ───────────────────────────────────
-      let picRes = { ok: true };
-      if (Object.keys(picUpdates).length > 0) {
-        picRes = await fetch(`${apiUrl}/api/mass-update-pic`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+    if (mode === "stage") {
+      try {
+        // ── 1) Mass-update PICs ───────────────────────────────────────────────
+        // (hard-code “http://localhost:4000” here so we know it’s not an env-var issue)
+        const picRes = await fetch(`http://localhost:4000/api/mass-update-pic`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             reportIds: selectedReportIds,
-            picUpdates
+            picUpdates,
           }),
         });
-      }
+        console.log("▶️ picRes.status:", picRes.status);
   
-      // ── 2) bulk timeline update ──────────────────────────────
-      const timelineRes = await fetch(`${apiUrl}/api/mass-update-timeline`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportIds: selectedReportIds,
-          timelineUpdates
-        }),
-      });
+        // ── 2) Mass-update Timeline ───────────────────────────────────────────
+        const timelineRes = await fetch(`http://localhost:4000/api/mass-update-timeline`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reportIds: selectedReportIds,
+            timelineUpdates,
+          }),
+        });
+        console.log("▶️ timelineRes.status:", timelineRes.status);
   
-      if (picRes.ok && timelineRes.ok) {
-        // ── 3) merge everything into local state ────────────────
-        setReports(prev =>
-          prev.map(r => {
-            if (!selectedReportIds.includes(r.reportId)) return r;
-            return {
-              ...r,
-              usedBy: (r.usedBy || []).map(bu => ({
-                ...bu,
-                stages: (bu.stages || []).map(stage => {
-                  const sid = stage.stageId;
-                  return {
-                    ...stage,
-                    PICs: picUpdates[sid]      ?? stage.PICs,
-                    plannedStart: timelineUpdates[sid]?.plannedStart ?? stage.plannedStart,
-                    plannedEnd:   timelineUpdates[sid]?.plannedEnd   ?? stage.plannedEnd,
-                    actualStart:  timelineUpdates[sid]?.actualStart  ?? stage.actualStart,
-                    actualEnd:    timelineUpdates[sid]?.actualEnd    ?? stage.actualEnd,
-                  };
-                })
-              }))
-            };
-          })
-        );
+        if (picRes.ok && timelineRes.ok) {
+          // ── 3) Merge results into local state ─────────────────────────────────
+          const updatedReports = await Promise.all(
+            selectedReportIds.map(async (reportId) => {
+              // find the original locally
+              const original = reports.find((r) => r.reportId === reportId);
+              if (!original) {
+                console.warn(`⚠️ original report not found in local state: ${reportId}`);
+                return null;
+              }
   
-        alert('✅ PICs & timelines updated');
-      } else {
-        if (!picRes.ok) {
-          console.error('PIC error:', await picRes.text());
+              // normalize usedBy → always array
+              const rawUsedBy = original.usedBy;
+              const usedByArray = Array.isArray(rawUsedBy)
+                ? rawUsedBy
+                : rawUsedBy
+                ? Object.values(rawUsedBy)
+                : [];
+  
+              // build a brand-new usedBy by merging in whatever picUpdates/timelineUpdates we have
+              const mergedUsedBy = usedByArray.map((bu) => {
+                return {
+                  ...bu,
+                  stages: (bu.stages || []).map((stage) => {
+                    const sid = stage.stageId;
+                    // if picUpdates[sid] exists, use that; otherwise keep old stage.PICs
+                    const newPICs = picUpdates.hasOwnProperty(sid)
+                      ? picUpdates[sid]
+                      : stage.PICs || [];
+                    const newPlannedStart =
+                      timelineUpdates[sid]?.plannedStart ?? stage.plannedStart;
+                    const newPlannedEnd =
+                      timelineUpdates[sid]?.plannedEnd ?? stage.plannedEnd;
+                    const newActualStart =
+                      timelineUpdates[sid]?.actualStart ?? stage.actualStart;
+                    const newActualEnd =
+                      timelineUpdates[sid]?.actualEnd ?? stage.actualEnd;
+  
+                    return {
+                      ...stage,
+                      PICs: newPICs,
+                      plannedStart: newPlannedStart,
+                      plannedEnd: newPlannedEnd,
+                      actualStart: newActualStart,
+                      actualEnd: newActualEnd,
+                    };
+                  }),
+                };
+              });
+  
+              // create the payload to re-POST
+              const updatedReport = {
+                ...original,
+                usedBy: mergedUsedBy,
+              };
+  
+              console.log("▶️ updating report to Firestore:", reportId, updatedReport);
+              const res = await fetch(`http://localhost:4000/api/update-report`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedReport),
+              });
+              if (!res.ok) {
+                console.error(
+                  `❌ Failed to update report ${reportId}:`,
+                  await res.text()
+                );
+              }
+              return updatedReport;
+            })
+          );
+  
+          // now merge those updated ones into local state
+          setReports((prev) =>
+            prev.map((r) => {
+              const replacement = updatedReports.find(
+                (u) => u && u.reportId === r.reportId
+              );
+              return replacement || r;
+            })
+          );
+  
+          alert("✅ PICs & timelines updated");
+        } else {
+          if (!picRes.ok) {
+            console.error("PIC error:", await picRes.text());
+          }
+          if (!timelineRes.ok) {
+            console.error("Timeline error:", await timelineRes.text());
+          }
+          alert("❌ Failed to update PICs and/or timelines");
         }
-        if (!timelineRes.ok) {
-          console.error('Timeline error:', await timelineRes.text());
-        }
-        alert('❌ Failed to update PICs and/or timelines');
+      } catch (err) {
+        console.error("❌ handleSave (stage) error:", err);
+        alert("❌ Failed to save changes");
       }
   
       return;
     }
   
-    // … your existing Raw-file branch unchanged …
-  
-    // ── bulk Raw-file update ───────────────────────────────────
-    const res2 = await fetch(`${apiUrl}/api/mass-update-rawfile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // ── Raw-file branch unchanged ───────────────────────────────────────────────
+    const res2 = await fetch(`http://localhost:4000/api/mass-update-rawfile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         reportIds: selectedReportIds,
-        rawFileEntries: rawFileUpdates    // <-- full objects array
+        rawFileEntries: rawFileUpdates,
       }),
     });
   
     if (res2.ok) {
-      // merge rawFiles into local state
-      setReports(prev =>
-        prev.map(r => {
-          if (!selectedReportIds.includes(r.reportId)) return r;
-          return {
-            ...r,
-            rawFiles: rawFileUpdates.map(name => ({ fileName: name }))
-          };
-        })
-      );
-      alert('✅ Raw files updated');
+      // re-fetch all reports so that UI fully refreshes
+      try {
+        const freshRes = await fetch(`http://localhost:4000/api/get-reports`);
+        if (!freshRes.ok) throw new Error(await freshRes.text());
+        const fresh = await freshRes.json();
+        setReports(fresh);
+        setFilteredReports(fresh);
+        setRawFileUpdates([]);
+        setSelectedReportIds([]);
+        alert("✅ Raw files updated");
+      } catch (err) {
+        console.error("❌ Error refreshing after raw-file update:", err);
+        alert("❌ Updated Firestore, but could not refresh local data.");
+      }
     } else {
-      alert('❌ Failed to update raw files');
+      alert("❌ Failed to update raw files");
     }
   };
 
@@ -554,118 +695,189 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
           <>
             <h2 style={{ marginBottom: '0.5rem' }}>Bulk Edit PICs by Stage</h2>
             {stageTemplate.map((stageName, idx) => {
-              const stageId = `STG0${idx + 1}`
-              const options = picOptions[stageId] || []
-              const selected = picUpdates[stageId] || []
-              const inputVal = newPicInputs[stageId] || ''
-  
-              return (
-                <div
-                  key={stageId}
-                  style={{
-                    marginBottom: '1rem',
-                    padding: '0.5rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '10px',
-                    width: '1000px',
-                    overflowY: 'auto',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  <h3 style={{ margin: 0, marginBottom: '0.75rem' }}>
-                    {stageName}
-                  </h3>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.5rem',
-                      alignItems: 'center',
-                      marginBottom: '0.75rem'
-                    }}
-                  >
-                    <input
-                      className="input"
-                      list={`pic-list-${stageId}`}
-                      placeholder="Select or type PIC…"
-                      value={inputVal}
-                      onChange={e =>
-                        setNewPicInputs(inputs => ({
-                          ...inputs,
-                          [stageId]: e.target.value
-                        }))
-                      }
-                      style={{ flex: 1 }}
-                    />
-                    <datalist id={`pic-list-${stageId}`}>
-                      {options.map(p => (
-                        <option key={p} value={p} />
-                      ))}
-                    </datalist>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => handleStageAddPIC(stageId)}
-                    >
-                      ➕ Add
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    {selected.map(p => (
-                      <span key={p} className="selected-report-tag">
-                        {p}
-                        <button
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            marginLeft: '0.25rem',
-                            cursor: 'pointer',
-                            color: 'red'
-                          }}
-                          onClick={() => handleRemovePic(stageId, p)}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+  const stageId = `STG0${idx + 1}`;
 
-                    {/* ─── Timeline editors ──────────────────────────────── */}
-<div
-  style={{
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '0.5rem',
-    marginTop: '0.75rem',
-  }}
->
-  {['plannedStart','plannedEnd','actualStart','actualEnd'].map(field => (
-    <label key={field} style={{ display:'flex', flexDirection:'column', fontSize:'0.85rem' }}>
-      {field.replace(/([A-Z])/g, ' $1').replace(/^./,str=>str.toUpperCase())}
-      <input
-        type="date"
-        className="input"
-        value={timelineUpdates[stageId]?.[field] || ''}
-        onChange={e =>
-          setTimelineUpdates(tl => ({
-            ...tl,
-            [stageId]: {
-              ...tl[stageId],
-              [field]: e.target.value
-            }
-          }))
-        }
-      />
-    </label>
-  ))}
-</div>
-                  </div>
-                </div>
-              )
-            })}
+  // picOptions[stageId] may be an array of names (legacy) or an object { names, entries }
+  const rawPicOpt = picOptions[stageId] || {};
+  const optionNames = Array.isArray(rawPicOpt) ? rawPicOpt : rawPicOpt.names || [];
+  const optionEntries = Array.isArray(rawPicOpt) ? [] : rawPicOpt.entries || [];
+
+  // “selected” is an array of { name, org }
+  const selected = picUpdates[stageId] || [];
+
+  // newPicInputs[stageId] is { name, org }
+  const inputObj = newPicInputs[stageId] || { name: '', org: '' };
+  const nameVal = inputObj.name || '';
+  const orgVal  = inputObj.org  || '';
+
+  return (
+    <div
+      key={stageId}
+      style={{
+        marginBottom: '1rem',
+        padding: '0.5rem',
+        border: '1px solid #ddd',
+        borderRadius: '10px',
+        width: '1000px',
+        overflowY: 'auto',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+      }}
+    >
+      <h3 style={{ margin: 0, marginBottom: '0.75rem' }}>
+        {stageName}
+      </h3>
+
+      {/* PIC Name + Organization inputs */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'center',
+          marginBottom: '0.75rem'
+        }}
+      >
+        {/* PIC Name with datalist */}
+        <input
+          className="input"
+          list={`pic-list-${stageId}`}
+          placeholder="Select or type PIC…"
+          value={nameVal}
+          onChange={e =>
+            setNewPicInputs(inputs => ({
+              ...inputs,
+              [stageId]: {
+                ...(inputs[stageId] || {}),
+                name: e.target.value
+              }
+            }))
+          }
+          style={{ flex: 1 }}
+        />
+        <datalist id={`pic-list-${stageId}`}>
+          {optionNames.map(p => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
+
+        {/* Organization input */}
+        <input
+          className="input"
+          list={`org-list-${stageId}`}
+          placeholder="Organization…"
+          value={orgVal}
+          onChange={e =>
+            setNewPicInputs(inputs => ({
+              ...inputs,
+              [stageId]: {
+                ...(inputs[stageId] || {}),
+                org: e.target.value
+              }
+            }))
+          }
+          style={{ flex: 1 }}
+        />
+        <datalist id={`org-list-${stageId}`}>
+          {optionEntries
+            // only show entries whose name matches the selected PIC name
+            .filter(entry => entry.name === nameVal && entry.org)
+            .map((entry, i) => (
+              <option key={`${entry.name}|${entry.org}|${i}`} value={entry.org} />
+            ))}
+        </datalist>
+
+        <button
+          className="btn-secondary"
+          onClick={() => handleStageAddPIC(stageId)}
+        >
+          ➕ Add
+        </button>
+      </div>
+
+      {/* Display selected PICs with their organizations */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}
+      >
+        {selected.map((p, i) => (
+          <span
+            key={`${p.name}-${p.org}-${i}`}
+            className="selected-report-tag"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#e0e0e0',
+              borderRadius: '6px',
+              padding: '4px 8px'
+            }}
+          >
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {p.name} {p.org ? `(${p.org})` : ''}
+            </span>
+            <button
+              style={{
+                background: 'transparent',
+                border: 'none',
+                marginLeft: '0.25rem',
+                cursor: 'pointer',
+                color: 'red'
+              }}
+              onClick={() =>
+                setPicUpdates(u => {
+                  const newArr = (u[stageId] || []).filter(
+                    entry => !(entry.name === p.name && entry.org === p.org)
+                  );
+                  return { ...u, [stageId]: newArr };
+                })
+              }
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+
+      {/* ─── Timeline editors ──────────────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '0.5rem',
+          marginTop: '0.75rem'
+        }}
+      >
+        {['plannedStart', 'plannedEnd', 'actualStart', 'actualEnd'].map(field => (
+          <label
+            key={field}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              fontSize: '0.85rem'
+            }}
+          >
+            {field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+            <input
+              type="date"
+              className="input"
+              value={timelineUpdates[stageId]?.[field] || ''}
+              onChange={e =>
+                setTimelineUpdates(tl => ({
+                  ...tl,
+                  [stageId]: {
+                    ...tl[stageId],
+                    [field]: e.target.value
+                  }
+                }))
+              }
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+})}
           </>
         ) : (
             
@@ -692,7 +904,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newRawFileInput}
       onChange={e => setNewRawFileInput(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/rawfile-options`)
+        fetch(`http://localhost:4000/api/rawfile-options`)
           .then(res => res.json())
           .then(data => setRawFileOptions(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
@@ -711,7 +923,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newSystemName}
       onChange={e => setNewSystemName(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/system-names`)
+        fetch(`http://localhost:4000/api/system-names`)
           .then(res => res.json())
           .then(data => setSystemNames(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);
@@ -730,7 +942,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       value={newSystemOwner}
       onChange={e => setNewSystemOwner(e.target.value)}
       onFocus={() => {
-        fetch(`${apiUrl}/api/system-owners`)
+        fetch(`http://localhost:4000/api/system-owners`)
           .then(res => res.json())
           .then(data => setSystemOwners(Array.isArray(data) ? data : data.values || []))
           .catch(console.error);

@@ -16,7 +16,13 @@ const db = admin.firestore();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [ "http://localhost:3001", "https://your-frontend-domain.com" ], 
+    methods: [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+    credentials: true
+  })
+);
 app.use(bodyParser.json());
 
 const optionCollections = {
@@ -300,6 +306,11 @@ app.post('/api/save-system-owner', async (req, res) => {
 });
 
 // ↓ replace your existing app.post('/api/mass-update-pic', …) with this:
+// ↓ replace your existing app.post('/api/mass-update-pic', …) with this:
+// ↓ Replace your existing mass-update-pic exactly with this:
+// ↓ Replace your entire existing handler with this one:
+// Replace your existing mass-update-pic with this entire block:
+
 app.post('/api/mass-update-pic', async (req, res) => {
   const { reportIds, picUpdates } = req.body;
   if (!Array.isArray(reportIds) || typeof picUpdates !== 'object') {
@@ -307,43 +318,150 @@ app.post('/api/mass-update-pic', async (req, res) => {
   }
 
   try {
-    await Promise.all(reportIds.map(async reportId => {
+    // 1) Build a batched write
+    const batch = db.batch();
+
+    // 2) For each reportId, normalize usedBy → always an array
+    for (let reportId of reportIds) {
       const docRef = db.collection('reports').doc(reportId);
       const snap = await docRef.get();
-      if (!snap.exists) return;  // nothing to update if report not found
+      if (!snap.exists) continue;
 
       const report = snap.data();
-      // update each usedBy → stages → PICs
-      const updatedUsedBy = (report.usedBy || []).map(u => {
+
+      // If usedBy is not an array, convert it into a single‐element array
+      const rawUsedBy = report.usedBy;
+      const usedByArray = Array.isArray(rawUsedBy)
+        ? rawUsedBy
+        : rawUsedBy
+        ? [rawUsedBy]
+        : [];
+
+      // 2a) Replace stage.PICs with newPicsForThisStage if provided
+      const updatedUsedBy = usedByArray.map(u => {
         const updatedStages = (u.stages || []).map(stage => {
-          const newPics = picUpdates[stage.stageId];
-          if (Array.isArray(newPics)) {
-            return { ...stage, PICs: newPics };
+          const newPicsForThisStage = picUpdates[stage.stageId];
+          if (Array.isArray(newPicsForThisStage)) {
+            return { ...stage, PICs: newPicsForThisStage };
           }
           return stage;
         });
         return { ...u, stages: updatedStages };
       });
 
-      // write back the modified report
-      await docRef.set({ ...report, usedBy: updatedUsedBy });
-    }));
+      // Overwrite “usedBy” w/ updatedUsedBy
+      batch.set(docRef, { ...report, usedBy: updatedUsedBy });
+    }
 
-    res.json({ success: true });
+    // 3) Now update pic_options/<stageId> documents
+    for (let [stageId, picArray] of Object.entries(picUpdates)) {
+      const optionRef = db.collection('pic_options').doc(stageId);
+      const optionSnap = await optionRef.get();
+      const existingEntries = optionSnap.exists
+        ? optionSnap.data().entries || []
+        : [];
+
+      // Build “name||org” set to dedupe
+      const seen = new Set(existingEntries.map(e => `${e.name}||${e.org}`));
+      const mergedEntries = [...existingEntries];
+
+      picArray.forEach(entry => {
+        const key = `${entry.name}||${entry.org}`;
+        if (!seen.has(key)) {
+          mergedEntries.push({ name: entry.name, org: entry.org });
+          seen.add(key);
+        }
+      });
+
+      // Also build array of just names (legacy)
+      const mergedNames = mergedEntries.map(e => e.name);
+
+      batch.set(optionRef, {
+        entries: mergedEntries,
+        names: mergedNames,
+      });
+    }
+
+    // 4) Commit once, atomically
+    await batch.commit();
+    return res.json({ success: true });
   } catch (err) {
     console.error('❌ mass-update-pic error', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/mass-update-timeline', async (req, res) => {
+  const { reportIds, timelineUpdates } = req.body;
+
+  if (
+    !Array.isArray(reportIds) ||
+    typeof timelineUpdates !== 'object'
+  ) {
+    return res.status(400).json({ error: 'Invalid payload' });
+  }
+
+  try {
+    await Promise.all(
+      reportIds.map(async (reportId) => {
+        const docRef = db.collection('reports').doc(reportId);
+        const snap = await docRef.get();
+        if (!snap.exists) return;
+
+        const data = snap.data();
+
+        // Safely grab usedBy[0] and its stages array
+        const usedByArray = Array.isArray(data.usedBy) ? data.usedBy : [];
+        if (usedByArray.length === 0) return;
+
+        const firstBucket = usedByArray[0];
+        const stagesArray = Array.isArray(firstBucket.stages)
+          ? firstBucket.stages
+          : [];
+
+        // Build newStages, defaulting to existing values if no update provided
+        const newStages = stagesArray.map((stage) => {
+          const updatesForThisStage = timelineUpdates[stage.stageId] || {};
+          return {
+            ...stage,
+            plannedStart:
+              updatesForThisStage.plannedStart ?? stage.plannedStart,
+            plannedEnd: updatesForThisStage.plannedEnd ?? stage.plannedEnd,
+            actualStart:
+              updatesForThisStage.actualStart ?? stage.actualStart,
+            actualEnd: updatesForThisStage.actualEnd ?? stage.actualEnd,
+          };
+        });
+
+        // Only write back if there was at least one stage to update
+        await docRef.update({
+          'usedBy.0.stages': newStages,
+        });
+      })
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('❌ mass-update-timeline error', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 
+// 🔹 GET /api/pic-options
+// 🔹 GET /api/pic-options
 // 🔹 GET /api/pic-options
 app.get('/api/pic-options', async (req, res) => {
   try {
     const snapshot = await db.collection('pic_options').get();
     const result = {};
     snapshot.forEach(doc => {
-      result[doc.id] = doc.data().names || [];
+      // Each doc.data() should now have both a `names` array and an `entries` array
+      const data = doc.data();
+      result[doc.id] = {
+        names:   Array.isArray(data.names)   ? data.names   : [],
+        entries: Array.isArray(data.entries) ? data.entries : []
+      };
     });
     res.json(result);
   } catch (err) {
@@ -384,60 +502,47 @@ app.post('/api/mass-update-rawfile', async (req, res) => {
   }
 });
 
-app.post('/api/mass-update-timeline', async (req, res) => {
-  const { reportIds, timelineUpdates } = req.body;
-  try {
-    await Promise.all(reportIds.map(async reportId => {
-      const docRef = db.collection('reports').doc(reportId);
-      const doc = await docRef.get();
-      if (!doc.exists) return;
-      const data = doc.data();
-      const newStages = data.usedBy[0].stages.map(s => {
-        const t = timelineUpdates[s.stageId] || {};
-        return {
-          ...s,
-          plannedStart: t.plannedStart ?? s.plannedStart,
-          plannedEnd:   t.plannedEnd   ?? s.plannedEnd,
-          actualStart:  t.actualStart  ?? s.actualStart,
-          actualEnd:    t.actualEnd    ?? s.actualEnd,
-        };
-      });
-      await docRef.update({
-        'usedBy.0.stages': newStages
-      });
-    }));
-    res.json({ success: true });
-  } catch (err) {
-    console.error('❌ mass-update-timeline error', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+
 
 // 🔹 POST /api/save-pic-option
+// ← replace your old save-pic-option
 app.post('/api/save-pic-option', async (req, res) => {
-  const { name, stageId } = req.body;
-
-  if (!name || !stageId) {
-    return res.status(400).json({ error: 'Missing name or stageId' });
+  const { stageId, name, org } = req.body;
+  if (!stageId || !name || !org) {
+    return res.status(400).json({ error: 'Missing stageId, name, or org' });
   }
 
   try {
-    const docRef = db.collection('pic_options').doc(stageId);
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
-      await docRef.set({ names: [name] });
-    } else {
-      const existing = doc.data().names || [];
-      if (!existing.includes(name)) {
-        await docRef.update({ names: [...existing, name] });
-      }
+    const optionRef = db.collection('pic_options').doc(stageId);
+    const optionSnap = await optionRef.get();
+    let existingEntries = [];
+    if (optionSnap.exists) {
+      existingEntries = optionSnap.data().entries || [];
     }
 
-    res.json({ success: true });
+    // Build a Set of “name||org” keys to avoid duplicates
+    const seen = new Set(existingEntries.map(e => `${e.name}||${e.org}`));
+    const mergedEntries = [...existingEntries];
+
+    const key = `${name}||${org}`;
+    if (!seen.has(key)) {
+      mergedEntries.push({ name, org });
+      seen.add(key);
+    }
+
+    // Also maintain a simple `names: [string]` array for backward‐compatibility
+    const mergedNames = mergedEntries.map(e => e.name);
+
+    // Overwrite (or create) the document with both fields:
+    await optionRef.set({
+      entries: mergedEntries,
+      names:   mergedNames
+    });
+
+    return res.json({ success: true });
   } catch (err) {
-    console.error('❌ Failed to save PIC option:', err);
-    res.status(500).json({ error: 'Failed to save PIC option' });
+    console.error('❌ Failed to save PIC option (with org):', err);
+    return res.status(500).json({ error: 'Failed to save PIC option' });
   }
 });
 
