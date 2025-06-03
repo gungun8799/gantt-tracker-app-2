@@ -161,10 +161,13 @@ reports.forEach(report => {
   let reportHasDelay = false;
 
   stages.forEach(stage => {
+    // 1) only consider the actual “current” stage
     const isCurrentStage = stage.stageName === currentStage;
-    const plannedEnd = stage.plannedEnd && new Date(stage.plannedEnd);
+    // 2) skip “Done” entirely
+    if (!isCurrentStage || stage.stageName === "Done") return;
 
-    if (isCurrentStage && plannedEnd && plannedEnd < today) {
+    const plannedEnd = stage.plannedEnd && new Date(stage.plannedEnd);
+    if (plannedEnd && plannedEnd < today) {
       delayedTaskCount++;
       reportHasDelay = true;
       console.log(`⚠️ Delayed Current Stage: ${stage.stageName} in report ${report.reportName}`);
@@ -622,53 +625,33 @@ filtered.forEach((r) => {
   </div>
 
   {/* 🔸 Right: Summary Cards */}
-  <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', minWidth: '350px' }}>    <div className="summary-card-report">
-     
-      <h3>📋 Pending Reports by PIC</h3>
-      <ul>
-      {Object.entries(
-        filtered.reduce((acc, report) => {
-          const currentStage = report.usedBy?.[0]?.stages.find(s => s.stageName === report.currentStage);
-          ;(currentStage?.PICs || []).forEach(p => {
-            // p may be {name,org} or a string
-            const picName = p && typeof p === 'object' ? p.name : p;
-            acc[picName] = (acc[picName] || 0) + 1;
-          });
-          return acc;
-        }, {})
-      ).map(([picName, count]) => (
-        <li key={picName}>
-          <strong>{picName}</strong>: {count}
-        </li>
-      ))}
-      </ul>
-    </div>
+  
+  <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', minWidth: '350px' }}>    <div className="summary-card-report-2">
 
-    {/* Combined PIC + Business–Owner Summary */}
-<div className="summary-card-report">
-  <h3>📋 Pending Reports by PIC</h3>
+    </div>
+    <div className="summary-card-report">
+  <h3>📋 Pending Reports by Org</h3>
   <ul>
     {Object.entries(
       filtered.reduce((acc, report) => {
-        // count PICs
+        // 1) Look up the current stage’s PIC array
         const currentStage = report.usedBy?.[0]?.stages.find(
           (s) => s.stageName === report.currentStage
         );
-        ;(currentStage?.PICs || []).forEach((p) => {
-          const picName = typeof p === "object" ? p.name : p;
-          acc[`PIC: ${picName}`] = (acc[`PIC: ${picName}`] || 0) + 1;
-        });
 
-        // count Business Owners
-        ;(report.businessOwners || []).forEach((owner) => {
-          acc[`BO: ${owner}`] = (acc[`BO: ${owner}`] || 0) + 1;
+        // 2) For each PIC that is an object, count its "org" field
+        ;(currentStage?.PICs || []).forEach((p) => {
+          if (p && typeof p === "object" && p.org && p.org.trim()) {
+            const orgName = p.org.trim();
+            acc[orgName] = (acc[orgName] || 0) + 1;
+          }
         });
 
         return acc;
       }, {})
-    ).map(([label, count]) => (
-      <li key={label}>
-        <strong>{label}</strong>: {count}
+    ).map(([orgName, count]) => (
+      <li key={orgName}>
+        <strong>{orgName}</strong>: {count}
       </li>
     ))}
   </ul>
@@ -687,12 +670,8 @@ filtered.forEach((r) => {
       </div>
       <div style={{ fontSize: '0.85rem', color: '#666' }}>Delayed Reports</div>
     </div>
-    <div>
-      <div style={{ fontSize: '2.2rem', color: '#333' }}>
-        {delayedTaskCount}
-      </div>
-      <div style={{ fontSize: '0.85rem', color: '#666' }}>Delayed Tasks</div>
-    </div>
+    
+
   </div>
 </div>
   </div>
