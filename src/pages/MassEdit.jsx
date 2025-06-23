@@ -22,7 +22,29 @@ const stageTemplate = [
   'Done',
 ];
 
+const stageDisplayMap = {
+  'Gather requirements with user':     'Gather requirements with user',
+  'Produce Data mapping script':      'Determine solution to Ingest',
+  'Select File sourcing option':      'Data model design/approval',
+  'Ingest to Azure & DEV':            'Ingest to Azure',
+  'UAT on Azure':                     'Dev Data Model & QA',
+  'Data transformation for PBI':      'Develop PBI Report',
+  'UAT on PBI':                       'UAT',
+  'File sourcing automation':         'File sourcing automation',
+  'Done':                             'Done'
+};
 
+const stageNames = [
+  'Gather requirements with user',
+  'Select File sourcing option',
+  'Produce Data mapping script',
+  'Ingest to Azure & DEV',
+  'UAT on Azure',
+  'Data transformation for PBI',
+  'UAT on PBI',
+  'File sourcing automation',
+  'Done'
+];
 // helper to load & save JSON
 // helper to load & save JSON
 const loadCache = key => {
@@ -694,7 +716,8 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
         {mode === 'stage' ? (
           <>
             <h2 style={{ marginBottom: '0.5rem' }}>Bulk Edit PICs by Stage</h2>
-            {stageTemplate.map((stageName, idx) => {
+            {stageNames.map((stageName, idx) => {
+  const displayName = stageDisplayMap[stageName] || stageName;
   const stageId = `STG0${idx + 1}`;
 
   // picOptions[stageId] may be an array of names (legacy) or an object { names, entries }
@@ -724,7 +747,7 @@ const [newRawFileInput, setNewRawFileInput] = useState('');
       }}
     >
       <h3 style={{ margin: 0, marginBottom: '0.75rem' }}>
-        {stageName}
+        {displayName}
       </h3>
 
       {/* PIC Name + Organization inputs */}
