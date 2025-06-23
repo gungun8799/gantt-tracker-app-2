@@ -18,15 +18,27 @@ export default function DrillPage() {
 // ─── Add this lookup at the top ────────────────────────
 const stageDisplayMap = {
   'Gather requirements with user':     'Gather requirements with user',
-  'Select File sourcing option':      'Obtain source files',
   'Produce Data mapping script':      'Determine solution to Ingest',
-  'Ingest to Azure & DEV':            'Ingest to Tencent & DEV',
-  'UAT on Azure':                     'UAT After ingestion',
-  'Data transformation for PBI':      'Data transformation for PBI',
-  'UAT on PBI':                       'UAT on PBI',
+  'Select File sourcing option':      'Data model design/approval',
+  'Ingest to Azure & DEV':            'Ingest to Azure',
+  'UAT on Azure':                     'Dev Data Model & QA',
+  'Data transformation for PBI':      'Develop PBI Report',
+  'UAT on PBI':                       'UAT',
   'File sourcing automation':         'File sourcing automation',
   'Done':                             'Done'
 };
+
+const stageNames = [
+  'Gather requirements with user',
+  'Select File sourcing option',
+  'Produce Data mapping script',
+  'Ingest to Azure & DEV',
+  'UAT on Azure',
+  'Data transformation for PBI',
+  'UAT on PBI',
+  'File sourcing automation',
+  'Done'
+];
 
 
   useEffect(() => {
@@ -115,7 +127,7 @@ data.forEach(r => {
     if (stage?.plannedStart && stage?.plannedEnd) {
       rows.push([
         `${report.reportId}-planned`,
-        `${stage.stageName} (Planned)`,
+        `${stageDisplayMap[stage.stageName] || stage.stageName} (Planned)`,
         'Planned',
         new Date(stage.plannedStart),
         new Date(stage.plannedEnd),
@@ -129,7 +141,7 @@ data.forEach(r => {
     if (stage?.actualStart && stage?.actualEnd) {
       rows.push([
         `${report.reportId}-actual`,
-        `${stage.stageName} (Actual)`,
+        `${stageDisplayMap[stage.stageName] || stage.stageName} (Actual)`,
         'Actual',
         new Date(stage.actualStart),
         new Date(stage.actualEnd),
@@ -354,8 +366,10 @@ data.forEach(r => {
                     },
                     palette: [
                       { color: 'transparent', label: '__HIDDEN__' },
-                      { color: '#8ec0ea' },  // Planned
-                      { color: '#185c97' },  // Actual
+                      { color: '#8ec0ea', label: 'Planned' },
+                      { color: '#8ec0ea', label: 'Planned-Current' },
+                      { color: '#185c97', label: 'Actual' },
+                      { color: '#185c97', label: 'Actual-Current' },
                       { color: '#ffd54f', label: 'TODAY' }
                     ]
                   },

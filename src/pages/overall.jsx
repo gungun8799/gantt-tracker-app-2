@@ -76,7 +76,7 @@ export default function OverallPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`http://localhost:4000
+    fetch(`${apiUrl}
 /api/get-reports`)
       .then(r => r.json())
       .then(setReports)

@@ -3,16 +3,28 @@ const apiUrl = process.env.REACT_APP_BACKEND_URL;
 const currentUserEmail = JSON.parse(localStorage.getItem('user'))?.email || 'unknown';
 
 const stageTemplate = [
-  "Gather requirements with user",
-  "Select File sourcing option",
-  "Produce Data mapping script",
-  "Ingest to Azure & DEV",
-  "UAT on Azure",
-  "Data transformation for PBI",
-  "UAT on PBI",
-  "File sourcing automation",
-  "Done"
+  'Gather requirements with user',
+  'Produce Data mapping script',
+  'Select File sourcing option',
+  'Ingest to Azure & DEV',
+  'UAT on Azure',
+  'Data transformation for PBI',
+  'UAT on PBI',
+  'File sourcing automation',
+  'Done'
 ];
+
+const stageDisplayMap = {
+  'Gather requirements with user':     'Gather requirements with user',
+  'Produce Data mapping script':      'Determine solution to Ingest',
+  'Select File sourcing option':      'Data model design/approval',
+  'Ingest to Azure & DEV':            'Ingest to Azure',
+  'UAT on Azure':                     'Dev Data Model & QA',
+  'Data transformation for PBI':      'Develop PBI Report',
+  'UAT on PBI':                       'UAT',
+  'File sourcing automation':         'File sourcing automation',
+  'Done':                             'Done'
+};
 
 const BUs = ["General", "AP","AR","GL","AR MALL", "AR Cash","AR Tendor","AR O2O", "AR CI", "AR Debt", "AP Trade", "AP Non Trade", "GL"];
 const Priorities = ["High", "Medium", "Low"];
@@ -773,7 +785,9 @@ export default function DataEntryPage() {
         <select className="select" value={currentStage} onChange={e => setCurrentStage(e.target.value)}>
           <option value="">Select Current Stage</option>
           {stages.map(s => (
-            <option key={s.stageId} value={s.stageName}>{s.stageName}</option>
+            <option key={s.stageId} value={s.stageName}>
+            {stageDisplayMap[s.stageName] || s.stageName}
+            </option>
           ))}
         </select>
       </div>
@@ -799,7 +813,9 @@ export default function DataEntryPage() {
         borderRadius: '6px'
       }}
     >
-      <h3 className="section-title">{stage.stageName}</h3>
+      <h3 className="section-title">
+        {stageDisplayMap[stage.stageName] || stage.stageName}
+      </h3>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
         {/* Planned/Actual Date Inputs (unchanged) */}

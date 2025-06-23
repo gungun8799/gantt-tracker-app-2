@@ -3,7 +3,29 @@ import '../styles/Pages.css';
 const apiUrl = process.env.REACT_APP_BACKEND_URL;
 const currentUserEmail = JSON.parse(localStorage.getItem('user'))?.email || 'unknown';
 
+const stageNames = [
+  'Gather requirements with user',
+  'Produce Data mapping script',
+  'Select File sourcing option',
+  'Ingest to Azure & DEV',
+  'UAT on Azure',
+  'Data transformation for PBI',
+  'UAT on PBI',
+  'File sourcing automation',
+  'Done'
+];
 
+const stageDisplayMap = {
+  'Gather requirements with user':     'Gather requirements with user',
+  'Produce Data mapping script':      'Determine solution to Ingest',
+  'Select File sourcing option':      'Data model design/approval',
+  'Ingest to Azure & DEV':            'Ingest to Azure',
+  'UAT on Azure':                     'Dev Data Model & QA',
+  'Data transformation for PBI':      'Develop PBI Report',
+  'UAT on PBI':                       'UAT',
+  'File sourcing automation':         'File sourcing automation',
+  'Done':                             'Done'
+};
 export default function DashboardPage() {
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
@@ -519,16 +541,19 @@ export default function DashboardPage() {
       {!stageChangeModal.newStage ? (
         <>
           <p>Select new stage for this report:</p>
-          {filteredReports[stageChangeModal.reportIdx]?.usedBy?.[0]?.stages.map(s => (
-            <button
-              key={s.stageId}
-              className="btn-secondary"
-              style={{ display: 'block', margin: '0.25rem auto' }}
-              onClick={() => setStageChangeModal(prev => ({ ...prev, newStage: s.stageName }))}
-            >
-              {s.stageName}
-            </button>
-          ))}
+          {stageNames.map(stage => {
+            const display = stageDisplayMap[stage] || stage;
+            return (
+              <button
+                key={stage}
+                className="btn-secondary"
+                style={{ display: 'block', margin: '0.25rem auto' }}
+                onClick={() => setStageChangeModal(prev => ({ ...prev, newStage: stage }))}
+              >
+                {display}
+              </button>
+            );
+        })}
         </>
       ) : (
         <>
@@ -617,9 +642,9 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div className="stage-tag">
-                      {report.currentStage || 'No Stage Selected'}
-                    </div>
+                      <div className="stage-tag">
+                        {stageDisplayMap[report.currentStage] || report.currentStage || 'No Stage Selected'}
+                      </div>
                     <button
                       className="btn-primary-change"
                       onClick={() => setEditingStageIdx(reportIdx)}
@@ -672,7 +697,7 @@ export default function DashboardPage() {
           alignItems: 'center'
         }}
       >
-        {stage.stageName}
+        {stageDisplayMap[stage.stageName] || stage.stageName}
         <span>{isStageOpen ? '▲' : '▼'}</span>
       </h3>
 

@@ -32,16 +32,41 @@ const [selectedReports, setSelectedReports] = useState([]);
   today.setHours(0, 0, 0, 0); // normalize
   
   const stageOrder = [
-    "Gather requirements with user",
-    "Select File sourcing option",
-    "Produce Data mapping script",
-    "Ingest to Azure & DEV",
-    "UAT on Azure",
-    "Data transformation for PBI",
-    "UAT on PBI",
-    "File sourcing automation",
-    "Done"
+    'Gather requirements with user',
+    'Produce Data mapping script',
+    'Select File sourcing option',
+    'Ingest to Azure & DEV',
+    'UAT on Azure',
+    'Data transformation for PBI',
+    'UAT on PBI',
+    'File sourcing automation',
+    'Done'
   ];
+  
+  const stagePipeline = {};
+  const stageNames = [
+    'Gather requirements with user',
+    'Produce Data mapping script',
+    'Select File sourcing option',
+    'Ingest to Azure & DEV',
+    'UAT on Azure',
+    'Data transformation for PBI',
+    'UAT on PBI',
+    'File sourcing automation',
+    'Done'
+  ];
+  
+  const stageDisplayMap = {
+    'Gather requirements with user':     'Gather requirements with user',
+    'Produce Data mapping script':      'Determine solution to Ingest',
+    'Select File sourcing option':      'Data model design/approval',
+    'Ingest to Azure & DEV':            'Ingest to Azure',
+    'UAT on Azure':                     'Dev Data Model & QA',
+    'Data transformation for PBI':      'Develop PBI Report',
+    'UAT on PBI':                       'UAT',
+    'File sourcing automation':         'File sourcing automation',
+    'Done':                             'Done'
+  };
   
   const delayedReports = [];
   const delayedTasks = [];
@@ -156,7 +181,9 @@ let delayedReportCount = 0;
 let delayedTaskCount = 0;
 
 reports.forEach(report => {
-  const stages = report.usedBy?.[0]?.stages || [];
+  const stages = [...(report.usedBy?.[0]?.stages || [])].sort(
+    (a, b) => stageNames.indexOf(a.stageName) - stageNames.indexOf(b.stageName)
+  );
   const currentStage = report.currentStage;
   let reportHasDelay = false;
 
@@ -205,18 +232,7 @@ const filtered = reports.filter(r => {
 });
 
 
-  const stagePipeline = {};
-const stageNames = [
-  "Gather requirements with user",
-  "Select File sourcing option",
-  "Produce Data mapping script",
-  "Ingest to Azure & DEV",
-  "UAT on Azure",
-  "Data transformation for PBI",
-  "UAT on PBI",
-  "File sourcing automation",
-  "Done"
-];
+  
 
 
 
@@ -321,7 +337,9 @@ filtered.forEach((r) => {
     }
   }
   const getOverallRow = (report) => {
-    const stages = report.usedBy?.[0]?.stages || [];
+    const stages = [...(report.usedBy?.[0]?.stages || [])].sort(
+      (a, b) => stageNames.indexOf(a.stageName) - stageNames.indexOf(b.stageName)
+    );
   
     // Collect all dates from both planned and actual
     const allDates = stages.flatMap(stage => {
@@ -358,7 +376,7 @@ filtered.forEach((r) => {
   const getStageRows = (report) => {
     const rows = [];
     const currentStageName = report.currentStage;
-    const stagesMap = {};
+  
     const formatDate = (d) =>
       new Date(d).toLocaleDateString('en-GB', {
         day: '2-digit',
@@ -366,43 +384,46 @@ filtered.forEach((r) => {
         year: 'numeric'
       });
   
-    (report.usedBy?.[0]?.stages || []).forEach(s => {
+    const stagesMap = {};
+    (report.usedBy?.[0]?.stages || []).forEach((s) => {
       stagesMap[s.stageName] = s;
     });
   
     stageNames.forEach((stageName, i) => {
       const s = stagesMap[stageName];
       if (!s) return;
+  
       const baseId = `${report.reportId}-STG${i + 1}`;
       const isCurrent = stageName === currentStageName;
+      const displayName = stageDisplayMap[stageName] || stageName;
   
-      // Planned
+      // Planned row
       if (s.plannedStart && s.plannedEnd) {
         rows.push([
           `${baseId}`,
-          stageName,
-          isCurrent ? 'Planned-Current' : 'Planned', // 🔴 red if current
+          displayName,
+          isCurrent ? 'Planned-Current' : 'Planned',
           new Date(s.plannedStart),
           new Date(s.plannedEnd),
           null,
           0,
           `${report.reportId}-overall`,
-          `<b>${stageName}</b><br>Start: ${formatDate(s.plannedStart)}<br>End: ${formatDate(s.plannedEnd)}`
+          `<b>${displayName}</b><br>Start: ${formatDate(s.plannedStart)}<br>End: ${formatDate(s.plannedEnd)}`
         ]);
       }
   
-      // Actual
+      // Actual row
       if (s.actualStart && s.actualEnd) {
         rows.push([
           `${baseId}-actual`,
           '',
-          isCurrent ? 'Actual-Current' : 'Actual', // 🔴 red if current
+          isCurrent ? 'Actual-Current' : 'Actual',
           new Date(s.actualStart),
           new Date(s.actualEnd),
           null,
           0,
           `${report.reportId}-overall`,
-          `<b>${stageName} (Actual)</b><br>Start: ${formatDate(s.actualStart)}<br>End: ${formatDate(s.actualEnd)}`
+          `<b>${displayName} (Actual)</b><br>Start: ${formatDate(s.actualStart)}<br>End: ${formatDate(s.actualEnd)}`
         ]);
       }
     });
@@ -609,8 +630,12 @@ filtered.forEach((r) => {
           }}
         >
           <option value="">All</option>
-          {unique(key).map(v => (
-            <option key={v} value={v}>{v}</option>
+          {stageNames
+            .filter(stage => unique('stage').includes(stage))
+            .map(stage => (
+              <option key={stage} value={stage}>
+                {stageDisplayMap[stage] || stage}
+              </option>
           ))}
         </select>
       </div>
@@ -691,7 +716,7 @@ filtered.forEach((r) => {
                   key={stage}
                   className={`stage-cell ${stage === 'Done' ? 'stage-done' : ''}`}
                 >
-                  <div className="stage-name">{stage}</div>
+                  <div className="stage-name">{stageDisplayMap[stage] || stage}</div>
                   <div className="stage-count">{stagePipeline[stage]}</div>
                 </div>
               ))}
@@ -726,7 +751,7 @@ filtered.forEach((r) => {
         >
           <h3 className="report-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {isExpanded ? '▼' : '▶'} {report.reportName} ({report.reportId})
-            <span className="stage-tag-stages-2">{report.currentStage || 'No Stage'}</span>
+            <span className="stage-tag-stages-2">{stageDisplayMap[report.currentStage] || report.currentStage || 'No Stage'}</span>
           </h3>
 
           {/* Moved remark below title */}
