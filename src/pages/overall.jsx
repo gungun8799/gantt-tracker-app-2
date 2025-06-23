@@ -12,8 +12,8 @@ const apiUrl = process.env.REACT_APP_BACKEND_URL;
 
 const stageNames = [
   'Gather requirements with user',
-  'Select File sourcing option',
   'Produce Data mapping script',
+  'Select File sourcing option',
   'Ingest to Azure & DEV',
   'UAT on Azure',
   'Data transformation for PBI',
@@ -24,12 +24,12 @@ const stageNames = [
 // maps your real stageName → the one you want to *display*
 const stageDisplayMap = {
   'Gather requirements with user':     'Gather requirements with user',
-  'Select File sourcing option':      'Obtain source files',
   'Produce Data mapping script':      'Determine solution to Ingest',
-  'Ingest to Azure & DEV':            'Ingest to Tencent & DEV',
-  'UAT on Azure':                     'UAT After ingestion',
-  'Data transformation for PBI':      'Data transformation for PBI',
-  'UAT on PBI':                       'UAT on PBI',
+  'Select File sourcing option':      'Data model design/approval',
+  'Ingest to Azure':                  'Ingest to Azure',
+  'UAT on Azure':                     'Dev Data Model & QA',
+  'Data transformation for PBI':      'Develop PBI Report',
+  'UAT on PBI':                       'UAT',
   'File sourcing automation':         'File sourcing automation',
   'Done':                             'Done'
 };
@@ -76,7 +76,7 @@ export default function OverallPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${apiUrl}
+    fetch(`http://localhost:4000
 /api/get-reports`)
       .then(r => r.json())
       .then(setReports)

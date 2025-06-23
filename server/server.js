@@ -16,14 +16,28 @@ const db = admin.firestore();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+const allowedOrigins = [
+  "https://gantt-tracker-app-frontend-2.onrender.com",
+  "http://localhost:3001"
+];
+
 app.use(
   cors({
-    origin: "https://gantt-tracker-app-frontend-2.onrender.com",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like curl or mobile apps)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
   })
 );
+
 app.use(bodyParser.json());
+
 
 const optionCollections = {
   'rawfile-option': 'rawfile-options',

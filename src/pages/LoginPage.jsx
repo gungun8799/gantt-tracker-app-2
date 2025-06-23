@@ -15,7 +15,7 @@ export default function LoginPage({ setUser }) {
     setLoading(true);  // ⬅️ Start loading
     console.log('🔐 Attempting login with:', { email, password });
     try {
-      const res = await fetch(`${apiUrl}/api/login`, {
+      const res = await fetch(`http://localhost:4000/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
