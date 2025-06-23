@@ -593,7 +593,9 @@ export default function DashboardPage() {
             >
                 <span>
                   {report.reportName} ({report.reportId}) 
-                  <span className="current-stage-label"> {report.currentStage || 'No Stage'}</span>
+                  <span className="current-stage-label">
+                    {stageDisplayMap[report.currentStage] || report.currentStage || 'No Stage'}
+                  </span>
                 </span>
               <span>{isReportOpen ? '▲' : '▼'}</span>
             </h2>
@@ -616,7 +618,9 @@ export default function DashboardPage() {
                     >
                       <option value="">Select New Stage</option>
                       {report.usedBy?.[0]?.stages.map(s => (
-                        <option key={s.stageId} value={s.stageName}>{s.stageName}</option>
+                        <option key={s.stageId} value={s.stageName}>
+                        {stageDisplayMap[s.stageName] || s.stageName}
+                      </option>
                       ))}
                     </select>
                     <button
